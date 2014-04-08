@@ -13,12 +13,21 @@
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 
 <jsp:useBean id="propertiesBean" type="jetbrains.buildServer.controllers.BasePropertiesBean" scope="request"/>
+<jsp:useBean id="constants" class="com.apicasystem.ltpselfservice.LtpSelfServiceContanstsBean" />
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
     "http://www.w3.org/TR/html4/loose.dtd">
 
 <l:settingsGroup title="LTP Self Service Installation">
     <tr>
-        <th><label>LTP user name:</label></th>
+        <th><label for="${constants.ltpUserName}">LTP user name: <l:star /></label></th>
+        <td><props:textField name="${constants.ltpUserName}" className="longField"/>
+            <span class="error" id="error_${constants.ltpUserName}" />
+            <span class="smallNote" >Your LTP login name</span>
+        </td>        
+    </tr>
+    <tr>
+        <th><label for="${constants.ltpPassword}">LTP password: <l:star /></label></th>
+        
     </tr>
 </l:settingsGroup>
