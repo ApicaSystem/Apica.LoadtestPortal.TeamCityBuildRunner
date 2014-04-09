@@ -21,13 +21,30 @@
 <l:settingsGroup title="LTP Self Service Installation">
     <tr>
         <th><label for="${constants.ltpUserName}">LTP user name: <l:star /></label></th>
-        <td><props:textField name="${constants.ltpUserName}" className="longField"/>
+        <td><props:textProperty id="${constants.ltpUserName}" name="${constants.ltpUserName}" className="longField"/>
             <span class="error" id="error_${constants.ltpUserName}" />
             <span class="smallNote" >Your LTP login name</span>
         </td>        
     </tr>
     <tr>
         <th><label for="${constants.ltpPassword}">LTP password: <l:star /></label></th>
-        
+        <td><props:passwordProperty name="${constants.ltpPassword}" className="longField" />
+            <span class="error" id="error_${constants.ltpPassword}" />
+            <span class="smallNote" >Your LTP password</span>
+        </td>
+    </tr>
+    <tr>
+        <th><label for="${constants.ltpPresetName}">Preset name: <l:star /></label></th>
+        <td><props:textProperty id="${constants.ltpPresetName}" name="${constants.ltpPresetName}" className="longField"/>
+            <span class="error" id="error_${constants.ltpPresetName}" />
+            <span class="smallNote" >The name of the load test preset as you saved it in LTP</span>            
+        </td>        
+    </tr>
+    <tr>
+        <th><label for="${constants.ltpRunnableFileName}">Load test file: <l:star /></label></th>
+        <td><props:textProperty id="${constants.ltpRunnableFileName}" name="${constants.ltpRunnableFileName}" className="longField"/>
+            <span class="error" id="error_${constants.ltpRunnableFileName}" />
+            <span class="smallNote" >The name of the load test preset as you saved it in LTP</span>            
+        </td>        
     </tr>
 </l:settingsGroup>
