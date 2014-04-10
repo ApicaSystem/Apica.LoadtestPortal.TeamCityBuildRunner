@@ -26,7 +26,7 @@
             <span class="smallNote" >Your LTP login name</span>
         </td>        
     </tr>
-    <tr>
+    <tr class="auth password">
         <th><label for="${constants.ltpPassword}">LTP password: <l:star /></label></th>
         <td><props:passwordProperty name="${constants.ltpPassword}" className="longField" />
             <span class="error" id="error_${constants.ltpPassword}" />

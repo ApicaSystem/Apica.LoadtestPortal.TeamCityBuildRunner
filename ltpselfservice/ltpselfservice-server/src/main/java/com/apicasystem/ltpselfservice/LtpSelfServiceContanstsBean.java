@@ -23,7 +23,7 @@ public class LtpSelfServiceContanstsBean
     @NotNull
     public String getLtpPassword()
     {
-        return LtpSelfServiceConstants.SETTINGS_LTP_USERNAME;
+        return LtpSelfServiceConstants.SETTINGS_LTP_PASSWORD;
     }
     
     @NotNull

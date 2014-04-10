@@ -51,6 +51,36 @@ public class LtpSelfServiceTunTypePropertiesProcessor implements PropertiesProce
                 result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "A load test file is either a .class or a .zip file."));
             }
         }
+        
+        if (result.size() == 0)
+        {
+            ServerSideLtpApiWebService serverSideService = new ServerSideLtpApiWebService();
+            PresetResponse presetResponse = serverSideService.checkPreset(username, password, presetName);
+            if (!presetResponse.isPresetExists())
+            {
+                if (presetResponse.getException() != null && !presetResponse.getException().equals(""))
+                {
+                    result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, presetResponse.getException()));
+                }
+                else
+                {
+                    result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "No such preset found."));
+                }
+            }
+            RunnableFileResponse runnableFileResponse = serverSideService.checkRunnableFile(username, password, runnableFileName);
+            if (!runnableFileResponse.isFileExists())
+            {
+                if (runnableFileResponse.getException() != null && !runnableFileResponse.getException().equals(""))
+                {
+                    result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, runnableFileResponse.getException()));
+                }
+                else
+                {
+                    result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "No such load test file found."));                                                            
+                }                    
+            }
+        }
+        
         return result;
     }
     
