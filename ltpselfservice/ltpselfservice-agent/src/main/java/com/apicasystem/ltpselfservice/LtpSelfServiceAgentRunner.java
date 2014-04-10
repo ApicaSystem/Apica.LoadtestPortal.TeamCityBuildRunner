@@ -3,7 +3,6 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package com.apicasystem.ltpselfservice;
 
 import jetbrains.buildServer.RunBuildException;
@@ -13,6 +12,9 @@ import jetbrains.buildServer.agent.AgentRunningBuild;
 import jetbrains.buildServer.agent.BuildAgentConfiguration;
 import jetbrains.buildServer.agent.BuildProcess;
 import jetbrains.buildServer.agent.BuildRunnerContext;
+import jetbrains.buildServer.agent.artifacts.ArtifactsWatcher;
+import org.apache.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -21,9 +23,21 @@ import jetbrains.buildServer.agent.BuildRunnerContext;
 public class LtpSelfServiceAgentRunner implements AgentBuildRunner, AgentBuildRunnerInfo
 {
 
-    public BuildProcess createBuildProcess(AgentRunningBuild arb, BuildRunnerContext brc) throws RunBuildException
+    
+    private static final Logger LOG = Logger.getLogger(LtpSelfServiceAgentRunner.class);
+    @NotNull
+    private final ArtifactsWatcher artifactsWatcher;
+
+    public LtpSelfServiceAgentRunner(@NotNull ArtifactsWatcher artifactsWatcher)
     {
-        return null;
+        this.artifactsWatcher = artifactsWatcher;
+        LOG.info("init");
+    }
+
+    public BuildProcess createBuildProcess(@NotNull AgentRunningBuild arb, @NotNull BuildRunnerContext brc) throws RunBuildException
+    {
+        LOG.info("createBuildProcess");
+        return new ApicaBuildProcess(arb, brc, this.artifactsWatcher);
     }
 
     public AgentBuildRunnerInfo getRunnerInfo()
@@ -40,5 +54,5 @@ public class LtpSelfServiceAgentRunner implements AgentBuildRunner, AgentBuildRu
     {
         return true;
     }
-    
+
 }
