@@ -33,9 +33,25 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         TeamCityLoadTestLogger logger = new TeamCityLoadTestLogger(this.build.getBuildLogger());
         logger.started("Load Test");
         LoadTestParameters params = new LoadTestParameters(this.context.getRunnerParameters());
-        String loadtestPresetName = params.get("", "");
-        String loadtestFileName = params.get("", "");
+        String loadtestPresetName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "");
+        if (loadtestPresetName.equals(""))
+        {
+            logger.failure("Unable to retrieve the load test preset name.");
+            return BuildFinishedStatus.FINISHED_FAILED;
+        }        
+        String loadtestFileName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "");
+        if (loadtestFileName.equals(""))
+        {
+            logger.failure("Unable to retrieve the load test file name.");
+            return BuildFinishedStatus.FINISHED_FAILED;
+        }
+        logger.message("Load test preset name: ".concat(loadtestPresetName));
+        logger.message("Load test file name: ".concat(loadtestFileName));
+        
         Thread.sleep(3000);
+        
         return BuildFinishedStatus.FINISHED_SUCCESS;
     }
+    
+    
 }
