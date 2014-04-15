@@ -5,6 +5,7 @@
  */
 package com.apicasystem.ltpselfservice;
 
+import com.google.gson.Gson;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -25,7 +26,6 @@ public abstract class FutureBasedBuildProcess implements BuildProcess, Callable<
 {
     private static final Logger LOG = Logger.getLogger(FutureBasedBuildProcess.class);
     private Future<BuildFinishedStatus> futureStatus;   
-    
 
     public void start() throws RunBuildException
     {

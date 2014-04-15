@@ -26,6 +26,11 @@ public interface LtpSelfServiceConstants
     String LTP_WEB_SERVICE_VERSION = "alpha";
     String LTP_WEB_SERVICE_PRESET_ENDPOINT = "selfservicepresets";
     String LTP_WEB_SERVICE_FILES_ENPOINT = "selfservicefiles";
+    String LTP_WEB_SERVICE_JOBS_BY_PRESET_ENDPOINT = "selfservicejobs/preset";
+    String LTP_WEB_SERVICE_JOBS_ENDPOINT = "selfservicejobs";
+    String LTP_WEB_SERVICE_JOB_STATISTICS_ENDPOINT = "summary";
     int LTP_WEB_SERVICE_PORT = 80;
+    int LTP_LOADTEST_STATUS_CHECK_INTERVAL_SECONDS = 10;
+    
     String URL_SEPARATOR = "/";
 }
