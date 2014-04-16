@@ -6,14 +6,18 @@
 
 package com.apicasystem.ltpselfservice;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 /**
  *
  * @author andras.nemes
  */
-public class SelfServiceStatisticsOfPreset
+public class LoadTestHistory
 {
+    private HashMap<String, ArrayList<SelfServiceStatistics>> presetResultHistoryCollection;
     private String presetName;
-    private SelfServiceStatistics statistics;
+    private ArrayList<SelfServiceStatistics> presetResultHistory;
 
     public String getPresetName()
     {
@@ -25,13 +29,13 @@ public class SelfServiceStatisticsOfPreset
         this.presetName = presetName;
     }
 
-    public SelfServiceStatistics getStatistics()
+    public ArrayList<SelfServiceStatistics> getPresetResultHistory()
     {
-        return statistics;
+        return presetResultHistory;
     }
 
-    public void setStatistics(SelfServiceStatistics statistics)
+    public void setPresetResultHistory(ArrayList<SelfServiceStatistics> presetResultHistory)
     {
-        this.statistics = statistics;
+        this.presetResultHistory = presetResultHistory;
     }
 }

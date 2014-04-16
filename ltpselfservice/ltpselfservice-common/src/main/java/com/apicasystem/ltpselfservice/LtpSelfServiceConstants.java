@@ -31,6 +31,8 @@ public interface LtpSelfServiceConstants
     String LTP_WEB_SERVICE_JOB_STATISTICS_ENDPOINT = "summary";
     int LTP_WEB_SERVICE_PORT = 80;
     int LTP_LOADTEST_STATUS_CHECK_INTERVAL_SECONDS = 10;
+    String LOADTEST_HISTORY_STORAGE_FILE = "loadtesthistory.txt";
+    String LOADTEST_HISTORY_STORAGE_FOLDER = "storage";
     
     String URL_SEPARATOR = "/";
 }

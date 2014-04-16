@@ -217,7 +217,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             SelfServiceStatisticsOfPreset presetStatistics = new SelfServiceStatisticsOfPreset();
             presetStatistics.setPresetName(presetName);
             presetStatistics.setStatistics(stats);
-            File f = storeLoadtestResults(presetStatistics, presetName);
+            File f = storeLoadtestResults(presetStatistics);
             logger.message("Saved the load test results on the agent repository: " + f.getAbsolutePath());
             
         } catch (Exception ex)
@@ -226,10 +226,10 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         }
     }
 
-    private File storeLoadtestResults(SelfServiceStatisticsOfPreset presetStatistics, String presetName) throws IOException
+    private File storeLoadtestResults(SelfServiceStatisticsOfPreset presetStatistics) throws IOException
     {
         File buildDir = this.build.getBuildTempDirectory();
-        File resultsFile = new File(buildDir, "load-test-results-".concat(presetName).concat(".txt"));
+        File resultsFile = new File(buildDir, "load-test-results.txt");
         FileWriter fileWriter = new FileWriter(resultsFile);
         if (!resultsFile.exists())
         {
