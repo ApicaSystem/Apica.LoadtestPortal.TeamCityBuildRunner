@@ -2,4 +2,6 @@
 <!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
 <beans default-autowire="constructor">
     <bean id="ltpSelfServiceRunType" class="com.apicasystem.ltpselfservice.LtpSelfServiceRunType" />
+    <bean id="resultsTab" class="com.apicasystem.ltpselfservice.SelfServiceResultsTab" />
+    <bean id="summaryTab" class="com.apicasystem.ltpselfservice.SelfServiceSummaryTab" />
 </beans>

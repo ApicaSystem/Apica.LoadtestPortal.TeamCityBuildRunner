@@ -24,7 +24,8 @@ public class LtpSelfServiceRunType extends RunType
     private final PluginDescriptor pluginDescriptor;  
     
     
-    public LtpSelfServiceRunType(@NotNull RunTypeRegistry runTypeRegistry, @NotNull PluginDescriptor pluginDescriptor)
+    public LtpSelfServiceRunType(@NotNull RunTypeRegistry runTypeRegistry, 
+            @NotNull PluginDescriptor pluginDescriptor)
     {
         this.pluginDescriptor = pluginDescriptor;
         runTypeRegistry.registerRunType(this);

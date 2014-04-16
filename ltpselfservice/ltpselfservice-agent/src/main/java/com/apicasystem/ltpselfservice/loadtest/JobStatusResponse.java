@@ -14,7 +14,6 @@ import java.util.Date;
  */
 public class JobStatusResponse
 {
-
     @SerializedName("id")
     private int jobId;
     @SerializedName("message")
