@@ -7,13 +7,15 @@
 package com.apicasystem.ltpselfservice;
 
 import java.util.Date;
+import java.util.UUID;
 
 /**
  *
  * @author andras.nemes
  */
-public class SelfServiceStatistics
+public class SelfServiceStatistics implements Comparable<SelfServiceStatistics>
 {
+    private UUID statisticsId;
     private Date dateOfInsertion;
     private int totalPassedLoops;
     private int totalFailedLoops;
@@ -27,6 +29,16 @@ public class SelfServiceStatistics
     private int averageNetworkConnectTime;
     private long totalTransmittedBytes;
 
+    public SelfServiceStatistics()
+    {
+        statisticsId = UUID.randomUUID();
+    }
+
+    public UUID getStatisticsId()
+    {
+        return statisticsId;
+    }
+    
     public Date getDateOfInsertion()
     {
         return dateOfInsertion;
@@ -146,6 +158,62 @@ public class SelfServiceStatistics
     {
         this.totalTransmittedBytes = totalTransmittedBytes;
     }
-    
+
+    @Override
+    public int hashCode()
+    {
+        int hash = 5;
+        hash = 29 * hash + (this.statisticsId != null ? this.statisticsId.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (obj == null)
+        {
+            return false;
+        }
+        if (getClass() != obj.getClass())
+        {
+            return false;
+        }
+        final SelfServiceStatistics other = (SelfServiceStatistics) obj;
+        if (this.statisticsId != other.statisticsId 
+                && (this.statisticsId == null || !this.statisticsId.equals(other.statisticsId)))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public int compareTo(SelfServiceStatistics o)
+    {
+        final int BEFORE = -1;
+        final int EQUAL = 0;
+        final int AFTER = 1;
+        
+        if (this.equals(o))
+        {
+            return EQUAL;
+        }
+        
+        if (this.dateOfInsertion.equals(o.getDateOfInsertion()))
+        {
+            return EQUAL;
+        }
+        
+        if (this.dateOfInsertion.before(o.getDateOfInsertion()))
+        {
+            return BEFORE;
+        }
+        
+        if (this.dateOfInsertion.after(o.getDateOfInsertion()))
+        {
+            return AFTER;
+        }
+        
+        return AFTER;
+    }  
     
 }

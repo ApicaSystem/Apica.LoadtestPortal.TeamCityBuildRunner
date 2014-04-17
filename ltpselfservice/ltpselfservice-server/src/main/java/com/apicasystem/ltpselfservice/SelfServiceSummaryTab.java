@@ -94,5 +94,6 @@ public class SelfServiceSummaryTab extends ApicaLoadTestTabBase
         SaveStatisticsInLoadtestHistoryResult saveHistoryResult = saveLoadtestHistoryInStore(stats);
         model.put("statsSaved", saveHistoryResult.isSaved());
         model.put("saveException", saveHistoryResult.getException());
+        model.put("statsExists", saveHistoryResult.isRecordAlreadyExists());
     }
 }

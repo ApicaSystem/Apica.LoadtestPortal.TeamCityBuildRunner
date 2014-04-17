@@ -7,6 +7,7 @@
 package com.apicasystem.ltpselfservice;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 /**
@@ -16,26 +17,44 @@ import java.util.HashMap;
 public class LoadTestHistory
 {
     private HashMap<String, ArrayList<SelfServiceStatistics>> presetResultHistoryCollection;
-    private String presetName;
-    private ArrayList<SelfServiceStatistics> presetResultHistory;
 
-    public String getPresetName()
+    public HashMap<String, ArrayList<SelfServiceStatistics>> getPresetResultHistoryCollection()
     {
-        return presetName;
+        return presetResultHistoryCollection;
     }
 
-    public void setPresetName(String presetName)
+    public void setPresetResultHistoryCollection(HashMap<String, ArrayList<SelfServiceStatistics>> presetResultHistoryCollection)
     {
-        this.presetName = presetName;
+        this.presetResultHistoryCollection = presetResultHistoryCollection;
     }
-
-    public ArrayList<SelfServiceStatistics> getPresetResultHistory()
+    
+    public boolean historyEntryExists(String presetName, SelfServiceStatistics selfServiceStatistics)
     {
-        return presetResultHistory;
+        boolean exists = false;
+        if (presetResultHistoryCollection.containsKey(presetName))
+        {
+            ArrayList<SelfServiceStatistics> statHistoryOfPreset = presetResultHistoryCollection.get(presetName);
+            if (statHistoryOfPreset.contains(selfServiceStatistics))
+            {
+                exists = true;
+            }            
+        }
+        return exists;
     }
-
-    public void setPresetResultHistory(ArrayList<SelfServiceStatistics> presetResultHistory)
+    
+    public void addNewHistoryEntry(String presetName, SelfServiceStatistics selfServiceStatistics)
     {
-        this.presetResultHistory = presetResultHistory;
+        if (this.presetResultHistoryCollection.containsKey(presetName))
+        {
+            ArrayList<SelfServiceStatistics> stats = this.presetResultHistoryCollection.get(presetName);
+            stats.add(selfServiceStatistics);
+            Collections.sort(stats);            
+        }
+        else
+        {
+            ArrayList<SelfServiceStatistics> stats = new ArrayList<SelfServiceStatistics>();
+            stats.add(selfServiceStatistics);
+            this.presetResultHistoryCollection.put(presetName, stats);
+        }
     }
 }

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildServer;
@@ -33,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public abstract class ApicaLoadTestTabBase extends ViewLogTab
 {
+
     private final PluginDescriptor pluginDescriptor;
     private final SBuildServer buildServer;
 
@@ -50,11 +52,7 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
         res.setException("");
         res.setSaved(false);
         res.setRecordAlreadyExists(false);
-        String root = this.buildServer.getServerRootPath();
-        String pluginFolder = pluginDescriptor.getPluginResourcesPath();
-        String storageFilePath = root.concat(pluginFolder).concat(LtpSelfServiceConstants.LOADTEST_HISTORY_STORAGE_FOLDER)
-                .concat(LtpSelfServiceConstants.URL_SEPARATOR)
-                .concat(LtpSelfServiceConstants.LOADTEST_HISTORY_STORAGE_FILE);
+        String storageFilePath = fullPathToPluginStorageFile();
         File sourceFile = new File(storageFilePath);
         res.setException(storageFilePath);
         if (!sourceFile.exists())
@@ -70,8 +68,7 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
             {
                 res.setException("Could not create the loadtest history storage file: "
                         .concat(ex.getMessage().concat(": ")
-                .concat(storageFilePath).concat(", ").concat(sourceFile.getAbsolutePath())
-                        .concat(", server root: ").concat(root)));
+                                .concat(storageFilePath).concat(", tested file: ").concat(sourceFile.getAbsolutePath())));
             }
         }
 
@@ -81,23 +78,18 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
             {
                 try
                 {
-                    FileReader fr = new FileReader(sourceFile);
-                    BufferedReader br = new BufferedReader(fr);
-                    String line;
-                    StringBuilder sb = new StringBuilder();
-                    while ((line = br.readLine()) != null)
-                    {
-                        sb.append(line);
-                    }
-                    String rawJson = sb.toString();
+                    String rawJson = readRawLoadtestHistory();
                     if (rawJson == null || rawJson.equals(""))
                     {
                         //file is empty
                         LoadTestHistory loadtestHistory = new LoadTestHistory();
-                        ArrayList<SelfServiceStatistics> presetResultHistory = new ArrayList<SelfServiceStatistics>();
-                        loadtestHistory.setPresetName(stats.getPresetName());
+                        ArrayList<SelfServiceStatistics> presetResultHistory
+                                = new ArrayList<SelfServiceStatistics>();
                         presetResultHistory.add(stats.getStatistics());
-                        loadtestHistory.setPresetResultHistory(presetResultHistory);
+                        HashMap<String, ArrayList<SelfServiceStatistics>> fullHistory
+                                = new HashMap<String, ArrayList<SelfServiceStatistics>>();
+                        fullHistory.put(stats.getPresetName(), presetResultHistory);
+                        loadtestHistory.setPresetResultHistoryCollection(fullHistory);
                         String json = new Gson().toJson(loadtestHistory);
                         try
                         {
@@ -109,7 +101,25 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
                         }
                     } else
                     {
-                        LoadTestHistory loadtestHistory = convertFromJson(sb.toString());
+                        LoadTestHistory loadtestHistory = convertFromJson(rawJson);
+                        String presetName = stats.getPresetName();
+                        SelfServiceStatistics statistics = stats.getStatistics();
+                        if (!loadtestHistory.historyEntryExists(presetName, statistics))
+                        {
+                            loadtestHistory.addNewHistoryEntry(presetName, statistics);
+                            String json = new Gson().toJson(loadtestHistory);
+                            try
+                            {
+                                saveToLocalStorage(sourceFile, json);
+                                res.setSaved(true);
+                            } catch (IOException ioe)
+                            {
+                                res.setException("IOException while while saving to history source file: ".concat(ioe.getMessage()));
+                            }
+                        } else
+                        {
+                            res.setRecordAlreadyExists(true);
+                        }
                     }
 
                 } catch (FileNotFoundException ex)
@@ -125,6 +135,22 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
             }
         }
         return res;
+    }
+
+    public String readRawLoadtestHistory() throws FileNotFoundException, IOException
+    {
+        String storageFilePath = fullPathToPluginStorageFile();
+        File sourceFile = new File(storageFilePath);
+        FileReader fr = new FileReader(sourceFile);
+        BufferedReader br = new BufferedReader(fr);
+        String line;
+        StringBuilder sb = new StringBuilder();
+        while ((line = br.readLine()) != null)
+        {
+            sb.append(line);
+        }
+        String rawJson = sb.toString();
+        return rawJson;
     }
 
     public SummaryArtifactReadingResult loadRawResultsFromArtifact(HttpServletRequest request)
@@ -187,7 +213,7 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
         return gson.fromJson(rawJson, SelfServiceStatisticsOfPreset.class);
     }
 
-    private LoadTestHistory convertFromJson(String json)
+    public LoadTestHistory convertFromJson(String json)
     {
         Gson gson = new Gson();
         return gson.fromJson(json, LoadTestHistory.class);
@@ -203,5 +229,15 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
         BufferedWriter bw = new BufferedWriter(fileWriter);
         bw.write(contents);
         bw.close();
+    }
+
+    private String fullPathToPluginStorageFile()
+    {
+        String root = this.buildServer.getServerRootPath();
+        String pluginFolder = pluginDescriptor.getPluginResourcesPath();
+        String storageFilePath = root.concat(pluginFolder).concat(LtpSelfServiceConstants.LOADTEST_HISTORY_STORAGE_FOLDER)
+                .concat(LtpSelfServiceConstants.URL_SEPARATOR)
+                .concat(LtpSelfServiceConstants.LOADTEST_HISTORY_STORAGE_FILE);
+        return storageFilePath;
     }
 }

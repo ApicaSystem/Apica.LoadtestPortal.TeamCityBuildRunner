@@ -65,14 +65,6 @@
                 <th>Total transmitted bytes</th>
                 <td>${totalTransmittedBytes}</td>
             </tr>
-            <tr>
-                <th>Statistics saved</th>
-                <td>${statsSaved}</td>
-            </tr>
-            <tr>
-                <th>Save messages</th>
-                <td>${saveException}</td>
-            </tr>
         </table>
     </c:if>    
         

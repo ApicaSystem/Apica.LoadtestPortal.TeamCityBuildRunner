@@ -8,6 +8,14 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 
-<img src="${teamcityPluginResourcesPath}image/apica-loadtest-logo.png">
-
-<h2>Apica Load Test Trends</h2>
+<div id="self-service-trends">
+    <img src="${teamcityPluginResourcesPath}image/apica-loadtest-logo.png">
+    <h2>Apica Load Test Trends</h2>
+    <c:if test="${historyLoadFailed}">
+        <p>Load test history failed to load. Exception: ${historyLoadException}</p>
+    </c:if>
+    
+    <c:if test="${historyLoaded}">
+        <p>${rawHistory}</p> 
+    </c:if>
+</div>
