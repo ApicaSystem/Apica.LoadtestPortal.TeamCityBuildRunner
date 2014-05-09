@@ -22,8 +22,8 @@ public interface LtpSelfServiceConstants
     String RUNNER_DESCRIPTION = "Apica Self Service runner";
     
     String LTP_WEB_SERVICE_BASE_URL = "api-ltp.apicasystem.com";
-    String LTP_WEB_SERVICE_SCHEME = "https";
-    String LTP_WEB_SERVICE_VERSION = "v1";
+    String LTP_WEB_SERVICE_SCHEME = "http";
+    String LTP_WEB_SERVICE_VERSION = "alpha";
     String LTP_WEB_SERVICE_PRESET_ENDPOINT = "selfservicepresets";
     String LTP_WEB_SERVICE_FILES_ENPOINT = "selfservicefiles";
     String LTP_WEB_SERVICE_JOBS_BY_PRESET_ENDPOINT = "selfservicejobs/preset";
