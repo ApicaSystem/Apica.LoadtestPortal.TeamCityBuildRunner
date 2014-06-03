@@ -15,8 +15,7 @@ import java.net.URI;
 public class TransmitJobRequestArgs
 {
     private URI ltpApiEndpoint;
-    private String username; 
-    private String password;
+    private String authToken;
     private String fileName;
     private String presetName;
 
@@ -30,24 +29,14 @@ public class TransmitJobRequestArgs
         this.ltpApiEndpoint = ltpApiEndpoint;
     }
 
-    public String getUsername()
+    public String getAuthToken()
     {
-        return username;
+        return authToken;
     }
 
-    public void setUsername(String username)
+    public void setAuthToken(String authToken)
     {
-        this.username = username;
-    }
-
-    public String getPassword()
-    {
-        return password;
-    }
-
-    public void setPassword(String password)
-    {
-        this.password = password;
+        this.authToken = authToken;
     }
 
     public String getFileName()

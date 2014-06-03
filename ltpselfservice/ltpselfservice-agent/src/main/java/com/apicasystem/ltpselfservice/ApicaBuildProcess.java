@@ -69,8 +69,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         res.setAllParamsPresent(true);
         String loadtestPresetName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "");
         String loadtestFileName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "");
-        String username = params.get(LtpSelfServiceConstants.SETTINGS_LTP_USERNAME, "");
-        String password = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PASSWORD, "");
+        String authToken = params.get(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "");
 
         if (loadtestPresetName.equals(""))
         {
@@ -82,14 +81,9 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             sb.append("Unable to retrieve the loadtest file name. Please re-enter it on the setup page. ");
             res.setAllParamsPresent(false);
         }
-        if (username.equals(""))
+        if (authToken.equals(""))
         {
-            sb.append("Unable to retrieve the LTP username. Please re-enter it on the setup page. ");
-            res.setAllParamsPresent(false);
-        }
-        if (password.equals(""))
-        {
-            sb.append("Unable to retrieve the LTP password. Please re-enter it on the setup page. ");
+            sb.append("Unable to retrieve the LTP auth token. Please re-enter it on the setup page. ");
             res.setAllParamsPresent(false);
         }
 
@@ -102,8 +96,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         logger.message("Attempting to initiate load test...");
         String loadtestPresetName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "");
         String loadtestFileName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "");
-        String username = params.get(LtpSelfServiceConstants.SETTINGS_LTP_USERNAME, "");
-        String password = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PASSWORD, "");
+        String authToken = params.get(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "");
         BuildFinishedStatus status = BuildFinishedStatus.FINISHED_SUCCESS;
 
         try
@@ -115,13 +108,14 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             String ltpBaseUri = LtpSelfServiceConstants.LTP_WEB_SERVICE_BASE_URL;
             String startByPresetUriExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_JOBS_BY_PRESET_ENDPOINT;
             String jobStatusExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_JOBS_ENDPOINT;
-            URI startByPresetUri = new URI(scheme, null, ltpBaseUri, port, sep.concat(version).concat(sep).concat(startByPresetUriExtension), null, null);
+            String tokenExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_AUTH_TOKEN_QUERY_STRING.concat("=").concat(authToken);
+            URI startByPresetUri = new URI(scheme, null, ltpBaseUri, port, sep.concat(version).concat(sep)
+                    .concat(startByPresetUriExtension), tokenExtension, null);
             TransmitJobRequestArgs transmitJobRequestArgs = new TransmitJobRequestArgs();
             transmitJobRequestArgs.setFileName(loadtestFileName);
             transmitJobRequestArgs.setLtpApiEndpoint(startByPresetUri);
-            transmitJobRequestArgs.setPassword(password);
+            transmitJobRequestArgs.setAuthToken(authToken);
             transmitJobRequestArgs.setPresetName(loadtestPresetName);
-            transmitJobRequestArgs.setUsername(username);
             StartJobByPresetResponse startByPresetResponse = transmitJob(transmitJobRequestArgs);
             if (startByPresetResponse.getJobId() > 0)
             {
@@ -129,11 +123,11 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                 logger.message("Successfully inserted job. Job id: ".concat(Integer.toString(jobId)));
                 JobStatusRequest jobStatusRequest = new JobStatusRequest();
                 URI jobStatusUri = new URI(scheme, null, ltpBaseUri,
-                        port, sep.concat(version).concat(sep).concat(jobStatusExtension).concat(sep).concat(Integer.toString(jobId)), null, null);
+                        port, sep.concat(version).concat(sep).concat(jobStatusExtension)
+                                .concat(sep).concat(Integer.toString(jobId)), tokenExtension, null);
                 jobStatusRequest.setJobId(jobId);
                 jobStatusRequest.setLtpApiEndpoint(jobStatusUri);
-                jobStatusRequest.setPassword(password);
-                jobStatusRequest.setUsername(username);
+                jobStatusRequest.setAuthToken(authToken);
                 JobStatusResponse jobStatus = checkJobResponse(jobStatusRequest);
                 logJobStatus(jobStatus, logger);
                 while (!jobStatus.isJobCompleted())
@@ -153,12 +147,12 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                     logger.message("Job has finished normally. Will now attempt to retrieve some job statistics.");
                     URI jobSummaryUri = new URI(scheme, null, ltpBaseUri, port,
                             (sep).concat(version).concat(sep).concat(jobStatusExtension)
-                            .concat(sep).concat(Integer.toString(jobId).concat(sep).concat(LtpSelfServiceConstants.LTP_WEB_SERVICE_JOB_STATISTICS_ENDPOINT)), null, null);
+                            .concat(sep).concat(Integer.toString(jobId).concat(sep)
+                                    .concat(LtpSelfServiceConstants.LTP_WEB_SERVICE_JOB_STATISTICS_ENDPOINT)), tokenExtension, null);
                     LoadtestJobSummaryRequest summaryRequest = new LoadtestJobSummaryRequest();
                     summaryRequest.setJobId(jobId);
                     summaryRequest.setLtpApiEndpoint(jobSummaryUri);
-                    summaryRequest.setPassword(password);
-                    summaryRequest.setUsername(username);
+                    summaryRequest.setAuthToken(authToken);
                     LoadtestJobSummaryResponse summaryResponse = getJobSummaryResponse(summaryRequest);
                     logJobSummary(summaryResponse, logger);
                     saveJobSummary(summaryResponse, logger, loadtestPresetName);
@@ -261,8 +255,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         resp.setException("");
         HttpUrlConnectionArguments connectionArgs = new HttpUrlConnectionArguments();
         connectionArgs.setWebMethod("GET");
-        connectionArgs.setPassword(jobSummaryRequest.getPassword());
-        connectionArgs.setUsername(jobSummaryRequest.getUsername());
+        connectionArgs.setAuthToken(jobSummaryRequest.getAuthToken());
         connectionArgs.setUri(jobSummaryRequest.getLtpApiEndpoint());
         Gson gson = new Gson();
         try
@@ -305,8 +298,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
 
         HttpUrlConnectionArguments connectionArgs = new HttpUrlConnectionArguments();
         connectionArgs.setWebMethod("GET");
-        connectionArgs.setPassword(jobStatusRequest.getPassword());
-        connectionArgs.setUsername(jobStatusRequest.getUsername());
+        connectionArgs.setAuthToken(jobStatusRequest.getAuthToken());
         connectionArgs.setUri(jobStatusRequest.getLtpApiEndpoint());
         Gson gson = new Gson();
         try
@@ -350,14 +342,12 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         HttpUrlConnectionArguments connectionArgs = new HttpUrlConnectionArguments();
         connectionArgs.setContentType("application/json");
         connectionArgs.setWebMethod("POST");
-        connectionArgs.setPassword(transmitJobArgs.getPassword());
-
+        connectionArgs.setAuthToken(transmitJobArgs.getAuthToken());
         Gson gson = new com.google.gson.Gson();
         TransmitJobPresetArgs presetArgs = new TransmitJobPresetArgs(transmitJobArgs.getPresetName(), transmitJobArgs.getFileName());
         String jsonifiedPresetArgs = gson.toJson(presetArgs);
         connectionArgs.setRequestBody(jsonifiedPresetArgs);
         connectionArgs.setUri(transmitJobArgs.getLtpApiEndpoint());
-        connectionArgs.setUsername(transmitJobArgs.getUsername());
 
         try
         {
@@ -400,8 +390,6 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         URL url = connectionArguments.getUri().toURL();
         connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod(connectionArguments.getWebMethod());
-        String auth = getBase64Credentials(connectionArguments.getUsername(), connectionArguments.getPassword());
-        connection.setRequestProperty("Authorization", "Basic ".concat(auth));
         if (!Utils.isBlank(connectionArguments.getContentType()))
         {
             connection.setRequestProperty("Content-Type", connectionArguments.getContentType());

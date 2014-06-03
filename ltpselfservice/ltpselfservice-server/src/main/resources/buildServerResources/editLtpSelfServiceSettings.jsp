@@ -20,18 +20,11 @@
 
 <l:settingsGroup title="LTP Self Service Installation">
     <tr>
-        <th><label for="${constants.ltpUserName}">LTP user name: <l:star /></label></th>
-        <td><props:textProperty id="${constants.ltpUserName}" name="${constants.ltpUserName}" className="longField"/>
-            <span class="error" id="error_${constants.ltpUserName}" />
-            <span class="smallNote" >Your LTP login name</span>
+        <th><label for="${constants.ltpApiAuthToken}">LTP authentication token: <l:star /></label></th>
+        <td><props:textProperty id="${constants.ltpApiAuthToken}" name="${constants.ltpApiAuthToken}" className="longField"/>
+            <span class="error" id="error_${constants.ltpApiAuthToken}" />
+            <span class="smallNote" >Your LTP authentication token</span>
         </td>        
-    </tr>
-    <tr class="auth password">
-        <th><label for="${constants.ltpPassword}">LTP password: <l:star /></label></th>
-        <td><props:passwordProperty name="${constants.ltpPassword}" className="longField" />
-            <span class="error" id="error_${constants.ltpPassword}" />
-            <span class="smallNote" >Your LTP password</span>
-        </td>
     </tr>
     <tr>
         <th><label for="${constants.ltpPresetName}">Preset name: <l:star /></label></th>

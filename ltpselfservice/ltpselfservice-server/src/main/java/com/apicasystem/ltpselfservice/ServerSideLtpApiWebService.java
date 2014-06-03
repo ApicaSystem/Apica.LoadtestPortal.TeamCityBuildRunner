@@ -27,15 +27,18 @@ public class ServerSideLtpApiWebService
         commonService = new CommonLtpWebApiService();
     }
 
-    public PresetResponse checkPreset(String ltpUsername, String ltpPassword, String presetName)
+    public PresetResponse checkPreset(String authToken, String presetName)
     {
         String presetUriExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_PRESET_ENDPOINT;
         PresetResponse presetResponse = new PresetResponse();
         presetResponse.setException("");
         try
         {
-            URI presetUri = new URI(scheme, null, baseUri, port, separator.concat(version).concat(separator).concat(presetUriExtension).concat(separator).concat(presetName), null, null);
-            WebRequestOutcome presetRequestOutcome = commonService.makeWebRequest(presetUri, ltpUsername, ltpPassword);
+            String tokenExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_AUTH_TOKEN_QUERY_STRING.concat("=").concat(authToken);
+            URI presetUri = new URI(scheme, null, baseUri, port, separator.concat(version).concat(separator)
+                    .concat(presetUriExtension).concat(separator).concat(presetName)
+                    , tokenExtension, null);
+            WebRequestOutcome presetRequestOutcome = commonService.makeWebRequest(presetUri);
             if (presetRequestOutcome.isWebRequestSuccessful())
             {
                 if (presetRequestOutcome.getHttpResponseCode() < 300)
@@ -57,15 +60,18 @@ public class ServerSideLtpApiWebService
         return presetResponse;
     }
 
-    public RunnableFileResponse checkRunnableFile(String ltpUsername, String ltpPassword, String fileName)
+    public RunnableFileResponse checkRunnableFile(String authToken, String fileName)
     {
         String fileUriExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_FILES_ENPOINT;
         RunnableFileResponse runnableFileResponse = new RunnableFileResponse();
         runnableFileResponse.setException("");
         try
         {
-            URI fileUri = new URI(scheme, null, baseUri, port, separator.concat(version).concat(separator).concat(fileUriExtension).concat(separator).concat(fileName), null, null);
-            WebRequestOutcome fileRequestOutcome = commonService.makeWebRequest(fileUri, ltpUsername, ltpPassword);
+            String tokenExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_AUTH_TOKEN_QUERY_STRING.concat("=").concat(authToken);
+            URI fileUri = new URI(scheme, null, baseUri, port, separator.concat(version).concat(separator)
+                    .concat(fileUriExtension).concat(separator).concat(fileName)
+                    , tokenExtension, null);
+            WebRequestOutcome fileRequestOutcome = commonService.makeWebRequest(fileUri);
             if (fileRequestOutcome.isWebRequestSuccessful())
             {
                 if (fileRequestOutcome.getHttpResponseCode() < 300)

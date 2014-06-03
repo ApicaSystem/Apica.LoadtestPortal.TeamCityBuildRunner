@@ -15,15 +15,9 @@ import com.apicasystem.ltpselfservice.LtpSelfServiceConstants;
 public class LtpSelfServiceContanstsBean
 {
     @NotNull
-    public String getLtpUserName()
+    public String getLtpApiAuthToken()
     {
-        return LtpSelfServiceConstants.SETTINGS_LTP_USERNAME;             
-    }
-    
-    @NotNull
-    public String getLtpPassword()
-    {
-        return LtpSelfServiceConstants.SETTINGS_LTP_PASSWORD;
+        return LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN;
     }
     
     @NotNull

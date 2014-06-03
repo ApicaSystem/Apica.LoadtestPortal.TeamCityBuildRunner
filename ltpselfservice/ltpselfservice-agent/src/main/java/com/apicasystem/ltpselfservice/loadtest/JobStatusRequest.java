@@ -15,8 +15,7 @@ import java.net.URI;
 public class JobStatusRequest
 {
     private URI ltpApiEndpoint;
-    private String username; 
-    private String password;
+    private String authToken;
     private int jobId;
 
     public URI getLtpApiEndpoint()
@@ -29,26 +28,16 @@ public class JobStatusRequest
         this.ltpApiEndpoint = ltpApiEndpoint;
     }
 
-    public String getUsername()
+    public String getAuthToken()
     {
-        return username;
+        return authToken;
     }
 
-    public void setUsername(String username)
+    public void setAuthToken(String authToken)
     {
-        this.username = username;
+        this.authToken = authToken;
     }
-
-    public String getPassword()
-    {
-        return password;
-    }
-
-    public void setPassword(String password)
-    {
-        this.password = password;
-    }
-
+    
     public int getJobId()
     {
         return jobId;

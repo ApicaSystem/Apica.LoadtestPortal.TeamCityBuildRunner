@@ -23,18 +23,13 @@ public class LtpSelfServiceTunTypePropertiesProcessor implements PropertiesProce
     public Collection<InvalidProperty> process(Map<String, String> properties)
     {
         List<InvalidProperty> result = new ArrayList<InvalidProperty>();
-        final String username = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_USERNAME);
-        final String password = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_PASSWORD);
+        final String authToken = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN);
         final String presetName = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME);
         final String runnableFileName = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE);
         
-        if (PropertiesUtil.isEmptyOrNull(username))
+        if (PropertiesUtil.isEmptyOrNull(authToken))
         {
-            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_USERNAME, "LTP user name must be specified."));            
-        }
-        if (PropertiesUtil.isEmptyOrNull(password))
-        {
-            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_PASSWORD, "LTP password must be specified."));
+            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "LTP user name must have an authentication token."));            
         }
         if (PropertiesUtil.isEmptyOrNull(presetName))
         {
@@ -55,7 +50,7 @@ public class LtpSelfServiceTunTypePropertiesProcessor implements PropertiesProce
         if (result.size() == 0)
         {
             ServerSideLtpApiWebService serverSideService = new ServerSideLtpApiWebService();
-            PresetResponse presetResponse = serverSideService.checkPreset(username, password, presetName);
+            PresetResponse presetResponse = serverSideService.checkPreset(authToken, presetName);
             if (!presetResponse.isPresetExists())
             {
                 if (presetResponse.getException() != null && !presetResponse.getException().equals(""))
@@ -67,7 +62,7 @@ public class LtpSelfServiceTunTypePropertiesProcessor implements PropertiesProce
                     result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "No such preset found."));
                 }
             }
-            RunnableFileResponse runnableFileResponse = serverSideService.checkRunnableFile(username, password, runnableFileName);
+            RunnableFileResponse runnableFileResponse = serverSideService.checkRunnableFile(authToken, runnableFileName);
             if (!runnableFileResponse.isFileExists())
             {
                 if (runnableFileResponse.getException() != null && !runnableFileResponse.getException().equals(""))

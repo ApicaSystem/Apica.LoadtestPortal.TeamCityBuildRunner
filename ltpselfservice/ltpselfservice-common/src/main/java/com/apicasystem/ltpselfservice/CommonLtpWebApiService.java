@@ -19,17 +19,15 @@ import org.apache.commons.codec.binary.Base64;
 public class CommonLtpWebApiService
 {
 
-    public WebRequestOutcome makeWebRequest(URI uri, String username, String password)
+    public WebRequestOutcome makeWebRequest(URI uri)
     {
         WebRequestOutcome outcome = new WebRequestOutcome();
         outcome.setExceptionMessage("");
         try
-        {
-            String auth = getBase64Credentials(username, password);
+        {            
             URL presetUrl = uri.toURL();
             HttpURLConnection con = (HttpURLConnection) presetUrl.openConnection();
             con.setRequestMethod("GET");
-            con.setRequestProperty("Authorization", "Basic ".concat(auth));
             con.setConnectTimeout(60000);
             int responseCode = con.getResponseCode();
             outcome.setHttpResponseCode(responseCode);

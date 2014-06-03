@@ -12,8 +12,7 @@ package com.apicasystem.ltpselfservice;
  */
 public interface LtpSelfServiceConstants
 {
-    String SETTINGS_LTP_USERNAME = "apica.selfservice.username";
-    String SETTINGS_LTP_PASSWORD = "apica.selfservice.password";
+    String SETTINGS_LTP_API_AUTH_TOKEN = "apica.selfservice.auth.token";
     String SETTINGS_LTP_PRESET_NAME = "apica.selfservice.preset";
     String SETTINGS_LTP_RUNNABLE_FILE = "apica.selfservice.runnablefile";
     
@@ -29,6 +28,7 @@ public interface LtpSelfServiceConstants
     String LTP_WEB_SERVICE_JOBS_BY_PRESET_ENDPOINT = "selfservicejobs/preset";
     String LTP_WEB_SERVICE_JOBS_ENDPOINT = "selfservicejobs";
     String LTP_WEB_SERVICE_JOB_STATISTICS_ENDPOINT = "summary";
+    String LTP_WEB_SERVICE_AUTH_TOKEN_QUERY_STRING = "token";
     int LTP_WEB_SERVICE_PORT = 80;
     int LTP_LOADTEST_STATUS_CHECK_INTERVAL_SECONDS = 10;
     String LOADTEST_HISTORY_STORAGE_FILE = "loadtesthistory.txt";
