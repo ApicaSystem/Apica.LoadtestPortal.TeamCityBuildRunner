@@ -14,7 +14,7 @@ public class EnvironmentFactory
 {
     private static Environment getCurrentEnvironment()
     {
-        return Environment.ALPHA;
+        return Environment.PRODUCTION;
     }
     
     public static String getLtpWebServiceBaseUrl()
