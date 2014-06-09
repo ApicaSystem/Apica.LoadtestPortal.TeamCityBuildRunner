@@ -24,7 +24,6 @@ import jetbrains.buildServer.agent.AgentRunningBuild;
 import jetbrains.buildServer.agent.BuildFinishedStatus;
 import jetbrains.buildServer.agent.BuildRunnerContext;
 import jetbrains.buildServer.agent.artifacts.ArtifactsWatcher;
-import org.apache.commons.codec.binary.Base64;
 
 /**
  *
@@ -33,6 +32,7 @@ import org.apache.commons.codec.binary.Base64;
 public class ApicaBuildProcess extends FutureBasedBuildProcess
 {
 
+    private LoadtestMetadata loadtestMetadata;
     private final AgentRunningBuild build;
     private final BuildRunnerContext context;
     private final ArtifactsWatcher artifactsWatcher;
@@ -86,8 +86,32 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             sb.append("Unable to retrieve the LTP auth token. Please re-enter it on the setup page. ");
             res.setAllParamsPresent(false);
         }
-
+        int testInstanceId = -1;
+        if (!authToken.equals("") && !loadtestPresetName.equals(""))
+        {
+            ServerSideLtpApiWebService serverSideService = new ServerSideLtpApiWebService();
+            PresetResponse presetResponse = serverSideService.checkPreset(authToken, loadtestPresetName);
+            if (!presetResponse.isPresetExists())
+            {
+                sb.append("Cannot find this preset: ").append(loadtestPresetName).append(". ");
+                res.setAllParamsPresent(false);
+            } else
+            {
+                testInstanceId = presetResponse.getTestInstanceId();
+                if (testInstanceId < 1)
+                {
+                    sb.append("The preset is not linked to a valid test instance. Please check in LTP if you have selected an existing test instance for the preset");
+                    res.setAllParamsPresent(false);
+                }
+            }
+        }
         res.setExceptionMessage(sb.toString());
+        if (res.isAllParamsPresent())
+        {
+            loadtestMetadata = new LoadtestMetadata();
+            loadtestMetadata.setApiToken(authToken);
+            loadtestMetadata.setPresetTestInstanceId(testInstanceId);
+        }
         return res;
     }
 
@@ -124,7 +148,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                 JobStatusRequest jobStatusRequest = new JobStatusRequest();
                 URI jobStatusUri = new URI(scheme, null, ltpBaseUri,
                         port, sep.concat(version).concat(sep).concat(jobStatusExtension)
-                                .concat(sep).concat(Integer.toString(jobId)), tokenExtension, null);
+                        .concat(sep).concat(Integer.toString(jobId)), tokenExtension, null);
                 jobStatusRequest.setJobId(jobId);
                 jobStatusRequest.setLtpApiEndpoint(jobStatusUri);
                 jobStatusRequest.setAuthToken(authToken);
@@ -156,6 +180,14 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                     LoadtestJobSummaryResponse summaryResponse = getJobSummaryResponse(summaryRequest);
                     logJobSummary(summaryResponse, logger);
                     saveJobSummary(summaryResponse, logger, loadtestPresetName);
+                    try
+                    {
+                        logger.message("Storing load test metadata...");
+                        storeLoadtestMetadata(loadtestMetadata);
+                    } catch (IOException ioe)
+                    {
+                        logger.failure("Unable to save loadtest metadata: ".concat(ioe.getMessage()));
+                    }
 
                 } else if (jobStatus.isJobFaulted())
                 {
@@ -188,7 +220,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         }
     }
 
-    private void saveJobSummary(LoadtestJobSummaryResponse jobSummaryResponse, 
+    private void saveJobSummary(LoadtestJobSummaryResponse jobSummaryResponse,
             TeamCityLoadTestLogger logger, String presetName)
     {
         logger.message("About to save the job statistics in an artifact...");
@@ -213,11 +245,29 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             presetStatistics.setStatistics(stats);
             File f = storeLoadtestResults(presetStatistics);
             logger.message("Saved the load test results on the agent repository: " + f.getAbsolutePath());
-            
+
         } catch (Exception ex)
         {
             logger.message("Failed to save the loadtest statistics: " + ex.getMessage());
         }
+    }
+
+    private File storeLoadtestMetadata(LoadtestMetadata loadtestMetadata) throws IOException
+    {
+        File buildDir = this.build.getBuildTempDirectory();
+        File metadataFile = new File(buildDir, "load-test-metadata.txt");
+        FileWriter fileWriter = new FileWriter(metadataFile);
+        if (!metadataFile.exists())
+        {
+            metadataFile.createNewFile();
+        }
+        BufferedWriter bw = new BufferedWriter(fileWriter);
+        Gson gson = new Gson();
+        String jsonified = gson.toJson(loadtestMetadata);
+        bw.write(jsonified);
+        bw.close();
+        this.artifactsWatcher.addNewArtifactsPath(metadataFile.getAbsolutePath());
+        return metadataFile;
     }
 
     private File storeLoadtestResults(SelfServiceStatisticsOfPreset presetStatistics) throws IOException
@@ -403,11 +453,5 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             wr.close();
         }
         return connection;
-    }
-
-    private String getBase64Credentials(String username, String password)
-    {
-        String auth = username.concat(":").concat(password);
-        return new String(Base64.encodeBase64(auth.getBytes()));
     }
 }

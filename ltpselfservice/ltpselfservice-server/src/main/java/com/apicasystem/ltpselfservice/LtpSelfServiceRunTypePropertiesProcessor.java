@@ -18,7 +18,7 @@ import jetbrains.buildServer.util.PropertiesUtil;
  *
  * @author andras.nemes
  */
-public class LtpSelfServiceTunTypePropertiesProcessor implements PropertiesProcessor
+public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProcessor
 {
     public Collection<InvalidProperty> process(Map<String, String> properties)
     {
@@ -29,7 +29,7 @@ public class LtpSelfServiceTunTypePropertiesProcessor implements PropertiesProce
         
         if (PropertiesUtil.isEmptyOrNull(authToken))
         {
-            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "LTP user name must have an authentication token."));            
+            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "LTP user must have an authentication token."));            
         }
         if (PropertiesUtil.isEmptyOrNull(presetName))
         {
@@ -60,6 +60,13 @@ public class LtpSelfServiceTunTypePropertiesProcessor implements PropertiesProce
                 else
                 {
                     result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "No such preset found."));
+                }
+            }
+            else //validate test instance id
+            {
+                if (presetResponse.getTestInstanceId() < 1)
+                {
+                    result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_TESTINSTANCE_ID, "The preset is not linked to a valid test instance. Please check in LTP if you have selected an existing test instance for the preset."));
                 }
             }
             RunnableFileResponse runnableFileResponse = serverSideService.checkRunnableFile(authToken, runnableFileName);

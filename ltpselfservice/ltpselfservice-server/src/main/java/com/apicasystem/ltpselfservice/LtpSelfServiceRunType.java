@@ -56,7 +56,7 @@ public class LtpSelfServiceRunType extends RunType
     @Nullable
     public PropertiesProcessor getRunnerPropertiesProcessor()
     {
-        return new LtpSelfServiceTunTypePropertiesProcessor();
+        return new LtpSelfServiceRunTypePropertiesProcessor();
     }
 
     @Override

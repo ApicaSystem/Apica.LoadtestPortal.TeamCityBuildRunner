@@ -30,7 +30,8 @@
         <th><label for="${constants.ltpPresetName}">Preset name: <l:star /></label></th>
         <td><props:textProperty id="${constants.ltpPresetName}" name="${constants.ltpPresetName}" className="longField"/>
             <span class="error" id="error_${constants.ltpPresetName}" />
-            <span class="smallNote" >The name of the load test preset as you saved it in LTP</span>            
+            <span class="error" id="error_${constants.ltpPresetTestInstanceId}" />
+            <span class="smallNote" >The name of the load test preset as you saved it in LTP.</span>            
         </td>        
     </tr>
     <tr>

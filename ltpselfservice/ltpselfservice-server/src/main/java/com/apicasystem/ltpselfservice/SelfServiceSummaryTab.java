@@ -91,9 +91,5 @@ public class SelfServiceSummaryTab extends ApicaLoadTestTabBase
         model.put("totalHttpCalls", statistics.getTotalHttpCalls());
         model.put("averageNetworkConnectTime", statistics.getAverageNetworkConnectTime());
         model.put("totalTransmittedBytes", statistics.getTotalTransmittedBytes());
-        SaveStatisticsInLoadtestHistoryResult saveHistoryResult = saveLoadtestHistoryInStore(stats);
-        model.put("statsSaved", saveHistoryResult.isSaved());
-        model.put("saveException", saveHistoryResult.getException());
-        model.put("statsExists", saveHistoryResult.isRecordAlreadyExists());
     }
 }

@@ -6,7 +6,6 @@
 
 package com.apicasystem.ltpselfservice;
 import org.jetbrains.annotations.NotNull;
-import com.apicasystem.ltpselfservice.LtpSelfServiceConstants;
 
 /**
  *
@@ -36,5 +35,11 @@ public class LtpSelfServiceContanstsBean
     public String getLtpApiBaseHttpAddress()
     {
         return LtpSelfServiceConstants.LTP_WEB_SERVICE_BASE_URL;
+    }
+    
+    @NotNull
+    public String getLtpPresetTestInstanceId()
+    {
+        return LtpSelfServiceConstants.SETTINGS_LTP_PRESET_TESTINSTANCE_ID;
     }
 }

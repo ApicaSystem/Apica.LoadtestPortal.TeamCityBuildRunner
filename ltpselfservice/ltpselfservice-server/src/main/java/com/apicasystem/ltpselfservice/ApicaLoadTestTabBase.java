@@ -46,111 +46,63 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
         this.pluginDescriptor = descriptor;
     }
 
-    public SaveStatisticsInLoadtestHistoryResult saveLoadtestHistoryInStore(SelfServiceStatisticsOfPreset stats)
+    public LoadtestMetadataReadResult loadMetadataFromArtifact(HttpServletRequest request)
     {
-        SaveStatisticsInLoadtestHistoryResult res = new SaveStatisticsInLoadtestHistoryResult();
-        res.setException("");
-        res.setSaved(false);
-        res.setRecordAlreadyExists(false);
-        String storageFilePath = fullPathToPluginStorageFile();
-        File sourceFile = new File(storageFilePath);
-        res.setException(storageFilePath);
-        if (!sourceFile.exists())
-        {
-            try
-            {
-                boolean fileCreationSuccess = sourceFile.createNewFile();
-                if (!fileCreationSuccess)
-                {
-                    res.setException("Could not create the loadtest history storage file.");
-                }
-            } catch (IOException ex)
-            {
-                res.setException("Could not create the loadtest history storage file: "
-                        .concat(ex.getMessage().concat(": ")
-                                .concat(storageFilePath).concat(", tested file: ").concat(sourceFile.getAbsolutePath())));
-            }
-        }
+        LoadtestMetadata metadata = new LoadtestMetadata();
+        LoadtestMetadataReadResult res = new LoadtestMetadataReadResult();
+        metadata.setApiToken("token");
+        metadata.setPresetTestInstanceId(-1);
+        res.setMetadata(metadata);
+        res.setLoadSuccess(true);
+        res.setLoadFailureReason("");
 
-        if (sourceFile.exists())
+        SBuild sBuild = getBuild(request);
+
+        if (sBuild == null)
         {
-            if (sourceFile.canRead() && sourceFile.canWrite())
+            res.setLoadFailureReason("No build available.");
+            res.setLoadSuccess(false);
+        } else
+        {
+            BuildArtifacts artifacts = sBuild.getArtifacts(BuildArtifactsViewMode.VIEW_ALL);
+            BuildArtifact metadataArtifact = artifacts.getArtifact("load-test-metadata.txt");
+
+            if (metadataArtifact == null)
+            {
+                res.setLoadFailureReason("Loadtest metadata artifact not found.");
+                res.setLoadSuccess(false);
+            } else
             {
                 try
                 {
-                    String rawJson = readRawLoadtestHistory();
-                    if (rawJson == null || rawJson.equals(""))
+                    InputStream inputStream = metadataArtifact.getInputStream();
+                    InputStreamReader isr = new InputStreamReader(inputStream);
+                    BufferedReader br = new BufferedReader(isr);
+                    String line;
+                    StringBuilder sb = new StringBuilder();
+                    while ((line = br.readLine()) != null)
                     {
-                        //file is empty
-                        LoadTestHistory loadtestHistory = new LoadTestHistory();
-                        ArrayList<SelfServiceStatistics> presetResultHistory
-                                = new ArrayList<SelfServiceStatistics>();
-                        presetResultHistory.add(stats.getStatistics());
-                        HashMap<String, ArrayList<SelfServiceStatistics>> fullHistory
-                                = new HashMap<String, ArrayList<SelfServiceStatistics>>();
-                        fullHistory.put(stats.getPresetName(), presetResultHistory);
-                        loadtestHistory.setPresetResultHistoryCollection(fullHistory);
-                        String json = new Gson().toJson(loadtestHistory);
-                        try
-                        {
-                            saveToLocalStorage(sourceFile, json);
-                            res.setSaved(true);
-                        } catch (IOException ioe)
-                        {
-                            res.setException("IOException while while saving to history source file: ".concat(ioe.getMessage()));
-                        }
-                    } else
-                    {
-                        LoadTestHistory loadtestHistory = convertFromJson(rawJson);
-                        String presetName = stats.getPresetName();
-                        SelfServiceStatistics statistics = stats.getStatistics();
-                        if (!loadtestHistory.historyEntryExists(presetName, statistics))
-                        {
-                            loadtestHistory.addNewHistoryEntry(presetName, statistics);
-                            String json = new Gson().toJson(loadtestHistory);
-                            try
-                            {
-                                saveToLocalStorage(sourceFile, json);
-                                res.setSaved(true);
-                            } catch (IOException ioe)
-                            {
-                                res.setException("IOException while while saving to history source file: ".concat(ioe.getMessage()));
-                            }
-                        } else
-                        {
-                            res.setRecordAlreadyExists(true);
-                        }
+                        sb.append(line);
                     }
-
-                } catch (FileNotFoundException ex)
+                    try
+                    {
+                        br.close();
+                    } catch (Exception ex)
+                    {
+                    }
+                    String rawJson = sb.toString();
+                    res.setPureJsonContent(rawJson);
+                    metadata = new Gson().fromJson(rawJson, LoadtestMetadata.class);
+                    res.setMetadata(metadata);
+                } catch (Exception ex)
                 {
-                    res.setException("File not found: ".concat(sourceFile.getAbsolutePath()));
-                } catch (IOException ex)
-                {
-                    res.setException("IOException while reading the source file: ".concat(ex.getMessage()));
+                    res.setLoadSuccess(false);
+                    res.setLoadFailureReason("Exception when loading metadata content: ".concat(ex.getMessage()));
                 }
-            } else
-            {
-                res.setException("Cannot read or write to history source file.");
             }
         }
-        return res;
-    }
 
-    public String readRawLoadtestHistory() throws FileNotFoundException, IOException
-    {
-        String storageFilePath = fullPathToPluginStorageFile();
-        File sourceFile = new File(storageFilePath);
-        FileReader fr = new FileReader(sourceFile);
-        BufferedReader br = new BufferedReader(fr);
-        String line;
-        StringBuilder sb = new StringBuilder();
-        while ((line = br.readLine()) != null)
-        {
-            sb.append(line);
-        }
-        String rawJson = sb.toString();
-        return rawJson;
+        return res;
     }
 
     public SummaryArtifactReadingResult loadRawResultsFromArtifact(HttpServletRequest request)
@@ -161,6 +113,7 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
         res.setRawJsonContent("");
 
         SBuild sBuild = getBuild(request);
+
         if (sBuild == null)
         {
             return null;
@@ -229,15 +182,5 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
         BufferedWriter bw = new BufferedWriter(fileWriter);
         bw.write(contents);
         bw.close();
-    }
-
-    private String fullPathToPluginStorageFile()
-    {
-        String root = this.buildServer.getServerRootPath();
-        String pluginFolder = pluginDescriptor.getPluginResourcesPath();
-        String storageFilePath = root.concat(pluginFolder).concat(LtpSelfServiceConstants.LOADTEST_HISTORY_STORAGE_FOLDER)
-                .concat(LtpSelfServiceConstants.URL_SEPARATOR)
-                .concat(LtpSelfServiceConstants.LOADTEST_HISTORY_STORAGE_FILE);
-        return storageFilePath;
     }
 }
