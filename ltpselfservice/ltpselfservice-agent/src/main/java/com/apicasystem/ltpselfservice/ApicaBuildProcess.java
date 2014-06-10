@@ -192,6 +192,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                 } else if (jobStatus.isJobFaulted())
                 {
                     logger.failure("Job has finished with an error: ".concat(jobStatus.getStatusMessage()));
+                    status = BuildFinishedStatus.FINISHED_FAILED;
                 }
 
             } else
