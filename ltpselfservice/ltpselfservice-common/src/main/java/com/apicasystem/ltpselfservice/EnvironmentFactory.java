@@ -26,7 +26,7 @@ public class EnvironmentFactory
             case PRODUCTION:
                 return "api-ltp.apicasystem.com";
             case TRIAL:
-                return "api-ltp-aws.apicasystem.com";
+                return "api-ltp-trial.apicasystem.com";
             default:
                 return "api-ltp.apicasystem.com";
         }
@@ -57,7 +57,7 @@ public class EnvironmentFactory
             case PRODUCTION:
                 return "http://loadtest.apicasystem.com/";
             case TRIAL:
-                return "http://loadtestaws.apicasystem.com/";
+                return "http://loadtest-trial.apicasystem.com/";
             default:
                 return "http://loadtest.apicasystem.com/";
         }
