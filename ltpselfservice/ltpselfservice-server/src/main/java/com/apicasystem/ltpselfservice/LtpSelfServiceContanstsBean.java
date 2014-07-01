@@ -42,4 +42,10 @@ public class LtpSelfServiceContanstsBean
     {
         return LtpSelfServiceConstants.SETTINGS_LTP_PRESET_TESTINSTANCE_ID;
     }
+    
+    @NotNull
+    public String getLtpThresholdSettings()
+    {
+        return LtpSelfServiceConstants.SETTINGS_LTP_THRESHOLD_SETTINGS;
+    }
 }
