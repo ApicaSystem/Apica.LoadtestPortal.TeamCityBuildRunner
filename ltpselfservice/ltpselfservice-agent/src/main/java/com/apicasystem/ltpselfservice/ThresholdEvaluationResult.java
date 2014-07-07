@@ -17,7 +17,18 @@ public class ThresholdEvaluationResult
 {
     private boolean thresholdBroken;
     private final List<String> exceededThresholdsDescription;
+    private String rawEvaluationResult;
 
+    public String getRawEvaluationResult()
+    {
+        return rawEvaluationResult;
+    }
+
+    public void setRawEvaluationResult(String rawEvaluationResult)
+    {
+        this.rawEvaluationResult = rawEvaluationResult;
+    }
+    
     public ThresholdEvaluationResult()
     {
         exceededThresholdsDescription = new ArrayList<String>();

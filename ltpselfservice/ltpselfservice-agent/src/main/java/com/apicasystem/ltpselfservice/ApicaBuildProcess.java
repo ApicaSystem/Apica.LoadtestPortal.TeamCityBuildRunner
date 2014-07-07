@@ -344,8 +344,11 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
     {
         ThresholdEvaluationResult res = new ThresholdEvaluationResult();
         res.setThresholdBroken(false);
+        StringBuilder rawOutputBuilder = new StringBuilder();
         for (Threshold threshold : thresholds)
         {
+            rawOutputBuilder.append("Threshold ").append(threshold.toString()).append("\r\n");
+            
             StandardMetricResult.Metrics metric = threshold.getMetric();
             int thresholdValue = threshold.getThresholdValue();
             Operator operator = threshold.getOperator();
@@ -354,10 +357,13 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                 double averageResponseTimePerPage = jobSummary.getPerformanceSummary().getAverageResponseTimePerPage();
                 int responseTimePerPageMillis = (int) (averageResponseTimePerPage * 1000);
                 
+                rawOutputBuilder.append("responseTimePerPageMillis: ")
+                        .append(Integer.toString(responseTimePerPageMillis)).append("\r\n");
+                
                 switch (operator)
                 {
                     case greaterThan:
-                        if (thresholdValue > responseTimePerPageMillis)
+                        if (thresholdValue < responseTimePerPageMillis)
                         {
                             res.setThresholdBroken(true);
                             String description = "Actual response time per page "
@@ -368,12 +374,12 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                         }
                         break;
                     case lessThan:
-                        if (thresholdValue < responseTimePerPageMillis)
+                        if (thresholdValue > responseTimePerPageMillis)
                         {
                             res.setThresholdBroken(true);
                             String description = "Actual response time per page "
                                     .concat(Integer.toString(responseTimePerPageMillis))
-                                    .concat(" is lower than threshold of ").concat(Integer.toString(thresholdValue))
+                                    .concat("ms is lower than threshold of ").concat(Integer.toString(thresholdValue))
                                     .concat(" ms.");
                             res.addThresholdExceededDescription(description);
                         }
@@ -386,11 +392,15 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                 int passedLoops = jobSummary.getPerformanceSummary().getTotalPassedLoops();
                 int failedLoops = jobSummary.getPerformanceSummary().getTotalFailedLoops();
                 int totalLoops = passedLoops + failedLoops;
-                double failedLoopsShare = ((double)failedLoops / (double) totalLoops) * 100.0;
+                double failedLoopsShare = (double)(failedLoops * 100.0) / (double) (totalLoops * 100.0);
+                
+                rawOutputBuilder.append("failedLoopsShare: ").append(Double.toString(failedLoopsShare))
+                        .append("\r\n");
+                
                 switch (operator)
                 {
                     case greaterThan:
-                        if (thresholdValue > failedLoopsShare)
+                        if (thresholdValue < failedLoopsShare)
                         {
                             res.setThresholdBroken(true);
                             String description = "Actual failed loops rate "
@@ -401,7 +411,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                         }
                         break;
                     case lessThan:
-                        if (thresholdValue < failedLoopsShare)
+                        if (thresholdValue > failedLoopsShare)
                         {
                             res.setThresholdBroken(true);
                             String description = "Actual failed loops rate "
@@ -415,6 +425,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             }
         }
         
+        res.setRawEvaluationResult(rawOutputBuilder.toString());
         return res;
     }
 
