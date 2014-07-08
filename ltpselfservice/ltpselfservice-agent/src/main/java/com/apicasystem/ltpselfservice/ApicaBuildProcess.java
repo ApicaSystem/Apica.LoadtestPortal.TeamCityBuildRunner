@@ -5,7 +5,11 @@
  */
 package com.apicasystem.ltpselfservice;
 
+import com.apicasystem.ltpselfservice.resources.LoadTestParameters;
 import com.apicasystem.ltpselfservice.loadtest.*;
+import com.apicasystem.ltpselfservice.resources.Operator;
+import com.apicasystem.ltpselfservice.resources.StandardMetricResult;
+import com.apicasystem.ltpselfservice.resources.Threshold;
 import com.google.gson.Gson;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -14,12 +18,16 @@ import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import jetbrains.buildServer.agent.AgentRunningBuild;
 import jetbrains.buildServer.agent.BuildFinishedStatus;
 import jetbrains.buildServer.agent.BuildRunnerContext;
@@ -57,9 +65,30 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             logger.failure(validationResult.getExceptionMessage());
             return BuildFinishedStatus.FINISHED_FAILED;
         }
+
+        List<Threshold> thresholds = new ArrayList<Threshold>();
+
+        try
+        {
+            ApicaSettings apicaSettings = new ApicaSettings();
+            thresholds = apicaSettings.parseThresholds(this.context.getRunnerParameters());
+            logger.message("Threshold values: \r\n".concat(apicaSettings.stringifiedThresholds(this.context.getRunnerParameters())));
+        } catch (Exception ex)
+        {
+            String message = ex.getMessage() == null ? "Null pointer exception." : ex.getMessage();
+            logger.message("Could not read threshold values: "
+                    .concat(message).concat("\r\n"));
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            logger.message(sw.toString());
+            logger.message("\r\n");
+            logger.message(params.toString());
+        }
+
         logger.message("Load test preset name: ".concat(params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "")));
         logger.message("Load test file name: ".concat(params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "")));
-        return runApicaSelfServiceJob(logger, params);
+        return runApicaSelfServiceJob(logger, params, thresholds);
     }
 
     private JobParamsValidationResult validateJobParams(LoadTestParameters params)
@@ -115,7 +144,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         return res;
     }
 
-    private BuildFinishedStatus runApicaSelfServiceJob(TeamCityLoadTestLogger logger, LoadTestParameters params)
+    private BuildFinishedStatus runApicaSelfServiceJob(TeamCityLoadTestLogger logger, LoadTestParameters params, List<Threshold> testThresholds)
     {
         logger.message("Attempting to initiate load test...");
         String loadtestPresetName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "");
@@ -187,6 +216,17 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                     } catch (IOException ioe)
                     {
                         logger.failure("Unable to save loadtest metadata: ".concat(ioe.getMessage()));
+                    }
+
+                    if (testThresholds.size() > 0)
+                    {
+                        logger.message("Evaluating threshold values...");
+                        ThresholdEvaluationResult thresholdEvaluation = evaluateThreshold(summaryResponse, testThresholds);
+                        if (thresholdEvaluation.isThresholdBroken())
+                        {
+                            logger.failure(thresholdEvaluation.toString());
+                            status = BuildFinishedStatus.FINISHED_FAILED;
+                        }
                     }
 
                 } else if (jobStatus.isJobFaulted())
@@ -298,6 +338,95 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         {
             logger.message("Exception when retrieving job summary statistics: " + jobSummaryResponse.getException());
         }
+    }
+
+    private ThresholdEvaluationResult evaluateThreshold(LoadtestJobSummaryResponse jobSummary, List<Threshold> thresholds)
+    {
+        ThresholdEvaluationResult res = new ThresholdEvaluationResult();
+        res.setThresholdBroken(false);
+        StringBuilder rawOutputBuilder = new StringBuilder();
+        for (Threshold threshold : thresholds)
+        {
+            rawOutputBuilder.append("Threshold ").append(threshold.toString()).append("\r\n");
+            
+            StandardMetricResult.Metrics metric = threshold.getMetric();
+            int thresholdValue = threshold.getThresholdValue();
+            Operator operator = threshold.getOperator();
+            if (metric == StandardMetricResult.Metrics.average_page_response_time)
+            {
+                double averageResponseTimePerPage = jobSummary.getPerformanceSummary().getAverageResponseTimePerPage();
+                int responseTimePerPageMillis = (int) (averageResponseTimePerPage * 1000);
+                
+                rawOutputBuilder.append("responseTimePerPageMillis: ")
+                        .append(Integer.toString(responseTimePerPageMillis)).append("\r\n");
+                
+                switch (operator)
+                {
+                    case greaterThan:
+                        if (thresholdValue < responseTimePerPageMillis)
+                        {
+                            res.setThresholdBroken(true);
+                            String description = "Actual response time per page "
+                                    .concat(Integer.toString(responseTimePerPageMillis))
+                                    .concat(" exceeds threshold value of ").concat(Integer.toString(thresholdValue))
+                                    .concat(" ms.");
+                            res.addThresholdExceededDescription(description);
+                        }
+                        break;
+                    case lessThan:
+                        if (thresholdValue > responseTimePerPageMillis)
+                        {
+                            res.setThresholdBroken(true);
+                            String description = "Actual response time per page "
+                                    .concat(Integer.toString(responseTimePerPageMillis))
+                                    .concat("ms is lower than threshold of ").concat(Integer.toString(thresholdValue))
+                                    .concat(" ms.");
+                            res.addThresholdExceededDescription(description);
+                        }
+                        break;
+                }
+            }
+            
+            if (metric == StandardMetricResult.Metrics.failure_rate)
+            {
+                int passedLoops = jobSummary.getPerformanceSummary().getTotalPassedLoops();
+                int failedLoops = jobSummary.getPerformanceSummary().getTotalFailedLoops();
+                int totalLoops = passedLoops + failedLoops;
+                double failedLoopsShare = (double)(failedLoops * 100.0) / (double) (totalLoops * 100.0);
+                
+                rawOutputBuilder.append("failedLoopsShare: ").append(Double.toString(failedLoopsShare))
+                        .append("\r\n");
+                
+                switch (operator)
+                {
+                    case greaterThan:
+                        if (thresholdValue < failedLoopsShare)
+                        {
+                            res.setThresholdBroken(true);
+                            String description = "Actual failed loops rate "
+                                    .concat(Double.toString(failedLoopsShare))
+                                    .concat(" exceeds threshold value of ").concat(Integer.toString(thresholdValue))
+                                    .concat(" %.");
+                            res.addThresholdExceededDescription(description);
+                        }
+                        break;
+                    case lessThan:
+                        if (thresholdValue > failedLoopsShare)
+                        {
+                            res.setThresholdBroken(true);
+                            String description = "Actual failed loops rate "
+                                    .concat(Double.toString(failedLoopsShare))
+                                    .concat(" is lower than threshold value of ").concat(Integer.toString(thresholdValue))
+                                    .concat(" %.");
+                            res.addThresholdExceededDescription(description);
+                        }
+                        break;                
+                }
+            }
+        }
+        
+        res.setRawEvaluationResult(rawOutputBuilder.toString());
+        return res;
     }
 
     private LoadtestJobSummaryResponse getJobSummaryResponse(LoadtestJobSummaryRequest jobSummaryRequest)

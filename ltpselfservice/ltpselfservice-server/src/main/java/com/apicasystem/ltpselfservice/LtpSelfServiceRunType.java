@@ -21,14 +21,15 @@ import org.jetbrains.annotations.Nullable;
  */
 public class LtpSelfServiceRunType extends RunType
 {
-    private final PluginDescriptor pluginDescriptor;  
-    
+    private final PluginDescriptor pluginDescriptor;
+    private final ApicaSettings settings;
     
     public LtpSelfServiceRunType(@NotNull RunTypeRegistry runTypeRegistry, 
-            @NotNull PluginDescriptor pluginDescriptor)
+            @NotNull PluginDescriptor pluginDescriptor, @NotNull ApicaSettings settings)
     {
         this.pluginDescriptor = pluginDescriptor;
         runTypeRegistry.registerRunType(this);
+        this.settings = settings;
     }
     
     @Override

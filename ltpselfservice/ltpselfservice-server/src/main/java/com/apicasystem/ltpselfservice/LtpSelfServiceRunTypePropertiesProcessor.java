@@ -3,13 +3,19 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package com.apicasystem.ltpselfservice;
 
+import com.apicasystem.ltpselfservice.resources.LoadTestParameters;
+import com.apicasystem.ltpselfservice.resources.StringUtils;
+import com.apicasystem.ltpselfservice.resources.Threshold;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.util.PropertiesUtil;
@@ -20,16 +26,26 @@ import jetbrains.buildServer.util.PropertiesUtil;
  */
 public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProcessor
 {
+    private List<Threshold> thresholds;
+
     public Collection<InvalidProperty> process(Map<String, String> properties)
     {
         List<InvalidProperty> result = new ArrayList<InvalidProperty>();
         final String authToken = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN);
         final String presetName = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME);
         final String runnableFileName = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE);
-        
+
+        try
+        {
+            this.thresholds = ApicaSettings.instance().parseThresholds(properties);
+        } catch (Exception ex)
+        {
+            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_THRESHOLD_SETTINGS, ex.getMessage()));
+        }        
+
         if (PropertiesUtil.isEmptyOrNull(authToken))
         {
-            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "LTP user must have an authentication token."));            
+            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "LTP user must have an authentication token."));
         }
         if (PropertiesUtil.isEmptyOrNull(presetName))
         {
@@ -38,15 +54,14 @@ public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProce
         if (PropertiesUtil.isEmptyOrNull(runnableFileName))
         {
             result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "Please provide a valid load test file name."));
-        }
-        else
+        } else
         {
             if (!fileIsZip(runnableFileName) && !fileIsClass(runnableFileName))
             {
                 result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "A load test file is either a .class or a .zip file."));
             }
         }
-        
+
         if (result.size() == 0)
         {
             ServerSideLtpApiWebService serverSideService = new ServerSideLtpApiWebService();
@@ -56,13 +71,11 @@ public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProce
                 if (presetResponse.getException() != null && !presetResponse.getException().equals(""))
                 {
                     result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, presetResponse.getException()));
-                }
-                else
+                } else
                 {
                     result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "No such preset found."));
                 }
-            }
-            else //validate test instance id
+            } else //validate test instance id
             {
                 if (presetResponse.getTestInstanceId() < 1)
                 {
@@ -75,25 +88,24 @@ public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProce
                 if (runnableFileResponse.getException() != null && !runnableFileResponse.getException().equals(""))
                 {
                     result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, runnableFileResponse.getException()));
-                }
-                else
+                } else
                 {
-                    result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "No such load test file found."));                                                            
-                }                    
+                    result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "No such load test file found."));
+                }
             }
         }
-        
+
         return result;
     }
-    
+
     private boolean fileIsZip(String fileName)
     {
         return fileName.endsWith(".zip");
     }
-    
+
     private boolean fileIsClass(String fileName)
     {
         return fileName.endsWith(".class");
     }
-    
+
 }
