@@ -5,6 +5,7 @@
  */
 package com.apicasystem.ltpselfservice;
 
+import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
 import java.io.IOException;
 import java.util.Map;
 import java.util.logging.Level;
@@ -30,8 +31,6 @@ public class SelfServiceResultsTab extends ApicaLoadTestTabBase
         setPluginName(getClass().getSimpleName());
         setIncludeUrl(descriptor.getPluginResourcesPath(getJspName()));
         addCssFile(descriptor.getPluginResourcesPath("css/style.css"));
-        
-        
     }
 
     protected String getTitle()
@@ -70,12 +69,15 @@ public class SelfServiceResultsTab extends ApicaLoadTestTabBase
         }
         
         LoadtestMetadataReadResult metadataResult = loadMetadataFromArtifact(request);
+        
         if (metadataResult.isLoadSuccess())
         {
+            LoadtestMetadata metadata = metadataResult.getMetadata();
+            LtpEnvironmentType environmentType = LtpEnvironmentType.valueOf(metadata.getEnvironmentType());
             model.put("hasResults", true);
             model.put("loadFailure", "");
             StringBuilder urlBuilder = new StringBuilder();
-            urlBuilder.append(LtpSelfServiceConstants.LOADTEST_PORTAL_ROOT)
+            urlBuilder.append(EnvironmentFactory.getLoadtestPortalRoot(environmentType))
                     .append(LtpSelfServiceConstants.LOADTEST_PORTAL_CI_CONTROLLER)
                     .append("?testInstanceId=").append(metadataResult.getMetadata().getPresetTestInstanceId())
                     .append("&authToken=").append(metadataResult.getMetadata().getApiToken());
@@ -86,32 +88,5 @@ public class SelfServiceResultsTab extends ApicaLoadTestTabBase
             model.put("hasResults", false);
             model.put("loadFailure", metadataResult.getLoadFailureReason());
         }
-        
-        /*
-        SummaryArtifactReadingResult artifactReadingResult = loadRawResultsFromArtifact(request);
-        if (artifactReadingResult == null || !artifactReadingResult.isHasResult()
-        || artifactReadingResult.getLoadTestStatistics() == null)
-        {
-        model.put("noResults", true);
-        model.put("exception", artifactReadingResult.getExceptionReason());
-        return;
-        }
-        SelfServiceStatisticsOfPreset stats = artifactReadingResult.getLoadTestStatistics();
-        SaveStatisticsInLoadtestHistoryResult saveHistoryResult = saveLoadtestHistoryInStore(stats);
-        model.put("statsSaved", saveHistoryResult.isSaved());
-        model.put("saveException", saveHistoryResult.getException());
-        model.put("statsExists", saveHistoryResult.isRecordAlreadyExists());
-        try
-        {
-        String rawJsonSource = super.readRawLoadtestHistory();
-        model.put("historyLoadFailed", false);
-        model.put("historyLoaded", true);
-        model.put("rawHistory", rawJsonSource);
-        } catch (IOException ex)
-        {
-        model.put("historyLoadFailed", true);
-        model.put("historyLoaded", false);
-        model.put("historyLoadException", ex.getMessage());
-        }*/
     }
 }

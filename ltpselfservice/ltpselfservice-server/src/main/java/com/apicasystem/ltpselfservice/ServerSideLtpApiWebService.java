@@ -5,6 +5,7 @@
  */
 package com.apicasystem.ltpselfservice;
 
+import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
 import java.net.URI;
 import java.net.URISyntaxException;
 import com.google.gson.Gson;
@@ -15,15 +16,17 @@ import com.google.gson.Gson;
  */
 public class ServerSideLtpApiWebService
 {
-    private CommonLtpWebApiService commonService;
+    private final CommonLtpWebApiService commonService;
     private final String scheme = LtpSelfServiceConstants.LTP_WEB_SERVICE_SCHEME;
-    private final String baseUri = LtpSelfServiceConstants.LTP_WEB_SERVICE_BASE_URL;
-    private final String version = LtpSelfServiceConstants.LTP_WEB_SERVICE_VERSION;
+    private final String baseUri;
+    private final String version;
     private final String separator = LtpSelfServiceConstants.URL_SEPARATOR;
     private final int port = LtpSelfServiceConstants.LTP_WEB_SERVICE_PORT;
 
-    public ServerSideLtpApiWebService()
+    public ServerSideLtpApiWebService(LtpEnvironmentType environmentType)
     {
+        baseUri = EnvironmentFactory.getLtpWebServiceBaseUrl(environmentType);
+        version = EnvironmentFactory.getLtpWebServiceVersion(environmentType);
         commonService = new CommonLtpWebApiService();
     }
 

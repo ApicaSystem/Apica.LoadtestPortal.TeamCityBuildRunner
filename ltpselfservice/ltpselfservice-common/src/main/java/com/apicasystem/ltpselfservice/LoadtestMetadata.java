@@ -14,7 +14,18 @@ public class LoadtestMetadata
 {
     private String apiToken;
     private int presetTestInstanceId;
+    private String environmentType;
 
+    public String getEnvironmentType()
+    {
+        return environmentType;
+    }
+
+    public void setEnvironmentType(String environmentType)
+    {
+        this.environmentType = environmentType;
+    }
+    
     public String getApiToken()
     {
         return apiToken;

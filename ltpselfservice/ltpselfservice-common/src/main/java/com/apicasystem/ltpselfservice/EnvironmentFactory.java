@@ -6,20 +6,29 @@
 
 package com.apicasystem.ltpselfservice;
 
+import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
+
 /**
  *
  * @author andras.nemes
  */
 public class EnvironmentFactory
 {
-    private static Environment getCurrentEnvironment()
+    private static Environment getCurrentEnvironment(LtpEnvironmentType environmentSetting)
     {
-        return Environment.PRODUCTION;
+        switch (environmentSetting)
+        {
+            case production:
+                return Environment.PRODUCTION;
+            case trial:
+                return Environment.TRIAL;
+        }
+        return Environment.ALPHA;
     }
     
-    public static String getLtpWebServiceBaseUrl()
+    public static String getLtpWebServiceBaseUrl(LtpEnvironmentType environmentSetting)
     {
-        Environment currentEnvironment = getCurrentEnvironment();
+        Environment currentEnvironment = getCurrentEnvironment(environmentSetting);
         switch(currentEnvironment)
         {
             case ALPHA:
@@ -32,9 +41,9 @@ public class EnvironmentFactory
         }
     }
     
-    public static String getLtpWebServiceVersion()
+    public static String getLtpWebServiceVersion(LtpEnvironmentType environmentSetting)
     {
-        Environment currentEnvironment = getCurrentEnvironment();
+        Environment currentEnvironment = getCurrentEnvironment(environmentSetting);
         switch(currentEnvironment)
         {
             case ALPHA:
@@ -47,11 +56,12 @@ public class EnvironmentFactory
         }
     }
     
-    public static String getLoadtestPortalRoot()
+    public static String getLoadtestPortalRoot(LtpEnvironmentType environmentSetting)
     {
-        Environment currentEnvironment = getCurrentEnvironment();
+        Environment currentEnvironment = getCurrentEnvironment(environmentSetting);
         switch(currentEnvironment)
         {
+            //blah blah
             case ALPHA:
                 return "http://loadtestalpha.apicasystem.com/";
             case PRODUCTION:

@@ -7,6 +7,7 @@ package com.apicasystem.ltpselfservice;
 
 import com.apicasystem.ltpselfservice.resources.LoadTestParameters;
 import com.apicasystem.ltpselfservice.loadtest.*;
+import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
 import com.apicasystem.ltpselfservice.resources.Operator;
 import com.apicasystem.ltpselfservice.resources.StandardMetricResult;
 import com.apicasystem.ltpselfservice.resources.Threshold;
@@ -59,7 +60,9 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         logger.started("Apica Self Service Load Test");
 
         LoadTestParameters params = new LoadTestParameters(this.context.getRunnerParameters());
-        JobParamsValidationResult validationResult = validateJobParams(params);
+        ApicaSettings apicaSettings = new ApicaSettings();
+        LtpEnvironmentType parseEnvironmentType = apicaSettings.parseEnvironmentType(this.context.getRunnerParameters());
+        JobParamsValidationResult validationResult = validateJobParams(params, parseEnvironmentType);
         if (!validationResult.isAllParamsPresent())
         {
             logger.failure(validationResult.getExceptionMessage());
@@ -67,12 +70,11 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         }
 
         List<Threshold> thresholds = new ArrayList<Threshold>();
-
         try
         {
-            ApicaSettings apicaSettings = new ApicaSettings();
             thresholds = apicaSettings.parseThresholds(this.context.getRunnerParameters());
             logger.message("Threshold values: \r\n".concat(apicaSettings.stringifiedThresholds(this.context.getRunnerParameters())));
+
         } catch (Exception ex)
         {
             String message = ex.getMessage() == null ? "Null pointer exception." : ex.getMessage();
@@ -88,10 +90,11 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
 
         logger.message("Load test preset name: ".concat(params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "")));
         logger.message("Load test file name: ".concat(params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "")));
-        return runApicaSelfServiceJob(logger, params, thresholds);
+        logger.message("Load test environment: ".concat(parseEnvironmentType.getDisplayName()));
+        return runApicaSelfServiceJob(logger, params, thresholds, parseEnvironmentType);
     }
 
-    private JobParamsValidationResult validateJobParams(LoadTestParameters params)
+    private JobParamsValidationResult validateJobParams(LoadTestParameters params, LtpEnvironmentType environmentType)
     {
         JobParamsValidationResult res = new JobParamsValidationResult();
         StringBuilder sb = new StringBuilder();
@@ -118,7 +121,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         int testInstanceId = -1;
         if (!authToken.equals("") && !loadtestPresetName.equals(""))
         {
-            ServerSideLtpApiWebService serverSideService = new ServerSideLtpApiWebService();
+            ServerSideLtpApiWebService serverSideService = new ServerSideLtpApiWebService(environmentType);
             PresetResponse presetResponse = serverSideService.checkPreset(authToken, loadtestPresetName);
             if (!presetResponse.isPresetExists())
             {
@@ -140,11 +143,12 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             loadtestMetadata = new LoadtestMetadata();
             loadtestMetadata.setApiToken(authToken);
             loadtestMetadata.setPresetTestInstanceId(testInstanceId);
+            loadtestMetadata.setEnvironmentType(environmentType.name());
         }
         return res;
     }
 
-    private BuildFinishedStatus runApicaSelfServiceJob(TeamCityLoadTestLogger logger, LoadTestParameters params, List<Threshold> testThresholds)
+    private BuildFinishedStatus runApicaSelfServiceJob(TeamCityLoadTestLogger logger, LoadTestParameters params, List<Threshold> testThresholds, LtpEnvironmentType environmentType)
     {
         logger.message("Attempting to initiate load test...");
         String loadtestPresetName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "");
@@ -155,10 +159,10 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         try
         {
             String scheme = LtpSelfServiceConstants.LTP_WEB_SERVICE_SCHEME;
-            String version = LtpSelfServiceConstants.LTP_WEB_SERVICE_VERSION;
+            String version = EnvironmentFactory.getLtpWebServiceVersion(environmentType);
             String sep = LtpSelfServiceConstants.URL_SEPARATOR;
             int port = LtpSelfServiceConstants.LTP_WEB_SERVICE_PORT;
-            String ltpBaseUri = LtpSelfServiceConstants.LTP_WEB_SERVICE_BASE_URL;
+            String ltpBaseUri = EnvironmentFactory.getLtpWebServiceBaseUrl(environmentType);
             String startByPresetUriExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_JOBS_BY_PRESET_ENDPOINT;
             String jobStatusExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_JOBS_ENDPOINT;
             String tokenExtension = LtpSelfServiceConstants.LTP_WEB_SERVICE_AUTH_TOKEN_QUERY_STRING.concat("=").concat(authToken);
@@ -348,7 +352,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         for (Threshold threshold : thresholds)
         {
             rawOutputBuilder.append("Threshold ").append(threshold.toString()).append("\r\n");
-            
+
             StandardMetricResult.Metrics metric = threshold.getMetric();
             int thresholdValue = threshold.getThresholdValue();
             Operator operator = threshold.getOperator();
@@ -356,10 +360,10 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             {
                 double averageResponseTimePerPage = jobSummary.getPerformanceSummary().getAverageResponseTimePerPage();
                 int responseTimePerPageMillis = (int) (averageResponseTimePerPage * 1000);
-                
+
                 rawOutputBuilder.append("responseTimePerPageMillis: ")
                         .append(Integer.toString(responseTimePerPageMillis)).append("\r\n");
-                
+
                 switch (operator)
                 {
                     case greaterThan:
@@ -386,17 +390,17 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                         break;
                 }
             }
-            
+
             if (metric == StandardMetricResult.Metrics.failure_rate)
             {
                 int passedLoops = jobSummary.getPerformanceSummary().getTotalPassedLoops();
                 int failedLoops = jobSummary.getPerformanceSummary().getTotalFailedLoops();
                 int totalLoops = passedLoops + failedLoops;
-                double failedLoopsShare = (double)(failedLoops * 100.0) / (double) (totalLoops * 100.0);
-                
+                double failedLoopsShare = (double) (failedLoops * 100.0) / (double) (totalLoops * 100.0);
+
                 rawOutputBuilder.append("failedLoopsShare: ").append(Double.toString(failedLoopsShare))
                         .append("\r\n");
-                
+
                 switch (operator)
                 {
                     case greaterThan:
@@ -420,11 +424,11 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                                     .concat(" %.");
                             res.addThresholdExceededDescription(description);
                         }
-                        break;                
+                        break;
                 }
             }
         }
-        
+
         res.setRawEvaluationResult(rawOutputBuilder.toString());
         return res;
     }
