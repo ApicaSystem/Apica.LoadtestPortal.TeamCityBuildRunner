@@ -11,6 +11,7 @@ package com.apicasystem.ltpselfservice;
  */
 public class TestResultConstants
 {
+    public static final String testEnvironmentKey = "loadtest.environment";
     public static final String testConfigurationId_key = "test.configuration.id";
     public static final int thresholdCount = 2;
     public static final String threshold_1_metric_key = "threshold.1.metric";

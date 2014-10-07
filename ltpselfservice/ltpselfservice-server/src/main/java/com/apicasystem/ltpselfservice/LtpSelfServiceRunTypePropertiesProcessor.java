@@ -6,6 +6,7 @@
 package com.apicasystem.ltpselfservice;
 
 import com.apicasystem.ltpselfservice.resources.LoadTestParameters;
+import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
 import com.apicasystem.ltpselfservice.resources.StringUtils;
 import com.apicasystem.ltpselfservice.resources.Threshold;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import jetbrains.buildServer.util.PropertiesUtil;
 public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProcessor
 {
     private List<Threshold> thresholds;
+    private LtpEnvironmentType environmentType;
 
     public Collection<InvalidProperty> process(Map<String, String> properties)
     {
@@ -35,6 +37,14 @@ public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProce
         final String presetName = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME);
         final String runnableFileName = properties.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE);
 
+        try
+        {
+            environmentType = ApicaSettings.instance().parseEnvironmentType(properties);
+        } catch (Exception ex)
+        {
+            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_ENVIRONMENT, ex.getMessage()));
+        }   
+        
         try
         {
             this.thresholds = ApicaSettings.instance().parseThresholds(properties);
@@ -64,7 +74,7 @@ public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProce
 
         if (result.size() == 0)
         {
-            ServerSideLtpApiWebService serverSideService = new ServerSideLtpApiWebService();
+            ServerSideLtpApiWebService serverSideService = new ServerSideLtpApiWebService(environmentType);
             PresetResponse presetResponse = serverSideService.checkPreset(authToken, presetName);
             if (!presetResponse.isPresetExists())
             {

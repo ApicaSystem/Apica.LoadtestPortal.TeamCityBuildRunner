@@ -31,11 +31,6 @@ public class LtpSelfServiceContanstsBean
         return LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE;
     }
     
-    @NotNull
-    public String getLtpApiBaseHttpAddress()
-    {
-        return LtpSelfServiceConstants.LTP_WEB_SERVICE_BASE_URL;
-    }
     
     @NotNull
     public String getLtpPresetTestInstanceId()
@@ -47,5 +42,11 @@ public class LtpSelfServiceContanstsBean
     public String getLtpThresholdSettings()
     {
         return LtpSelfServiceConstants.SETTINGS_LTP_THRESHOLD_SETTINGS;
+    }
+    
+    @NotNull
+    public String getLtpEnvironment()
+    {
+        return LtpSelfServiceConstants.SETTINGS_LTP_ENVIRONMENT;
     }
 }

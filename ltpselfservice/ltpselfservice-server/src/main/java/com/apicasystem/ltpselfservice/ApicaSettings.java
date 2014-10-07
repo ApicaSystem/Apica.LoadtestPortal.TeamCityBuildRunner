@@ -6,6 +6,7 @@
 package com.apicasystem.ltpselfservice;
 
 import com.apicasystem.ltpselfservice.resources.LoadTestResult;
+import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
 import com.apicasystem.ltpselfservice.resources.Operator;
 import com.apicasystem.ltpselfservice.resources.StandardMetricResult;
 import com.apicasystem.ltpselfservice.resources.StringUtils;
@@ -143,6 +144,17 @@ public class ApicaSettings
         }
     }
 
+    public LtpEnvironmentType parseEnvironmentType(Map<String, String> properties) throws Exception
+    {
+        if (properties.containsKey(TestResultConstants.testEnvironmentKey))
+        {
+            String value = properties.get(TestResultConstants.testEnvironmentKey);
+            return LtpEnvironmentType.valueOf(value);
+        }
+        
+        throw new NullPointerException("The properties collection does not include the test environment key.");
+    }
+    
     public List<Threshold> parseThresholds(Map<String, String> properties) throws Exception
     {
         try

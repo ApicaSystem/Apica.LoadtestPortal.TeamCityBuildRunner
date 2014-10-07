@@ -8,6 +8,7 @@
 <%@ page import="com.apicasystem.ltpselfservice.TestResultConstants" %>
 <%@ page import="com.apicasystem.ltpselfservice.ApicaSettings" %>
 <%@ page import="com.apicasystem.ltpselfservice.resources.DelayUnit" %>
+<%@ page import="com.apicasystem.ltpselfservice.resources.LtpEnvironmentType" %>
 
 <%@page contentType="text/html" pageEncoding="windows-1252"%>
 
@@ -35,9 +36,16 @@
     String chosenTestConfiguration = settings.containsKey(TestResultConstants.testConfigurationId_key)
                                      ? settings.get(TestResultConstants.testConfigurationId_key)
                                      : "";
+    
+    String chosenTestEnvironment = settings.containsKey(TestResultConstants.testEnvironmentKey)
+                                     ? settings.get(TestResultConstants.testEnvironmentKey)
+                                     : "";                             
+
     request.setAttribute("chosenTestConfiguration", chosenTestConfiguration);
+    request.setAttribute("chosenTestEnvironment", chosenTestEnvironment);
     
     request.setAttribute("delayUnits", DelayUnit.values());
+    request.setAttribute("environments", LtpEnvironmentType.values());
 %>
 
 <%--
@@ -219,6 +227,26 @@
 
 </script>
 
+<l:settingsGroup title="Load Test Environment">
+    <tr>
+        <th>Test Environment</th>
+        <td>
+            <props:selectProperty name="loadtest.environment">
+                <c:forEach items="${environments}" var="unit">
+                    <props:option value="${unit.id}">${unit.displayName}</props:option>
+                </c:forEach>
+            </props:selectProperty>
+            <span class="smallNote" >Select the appropriate LTP environment</span>
+        </td>
+    </tr>
+    <tr>
+        <th>&nbsp;</th>
+        <td>
+            <span class="error" id="error_${constants.ltpEnvironment}" />
+        </td>
+    </tr>
+</l:settingsGroup>
+
 <l:settingsGroup title="LTP Self Service Installation">
     <tr>
         <th><label for="${constants.ltpApiAuthToken}">LTP authentication token: <l:star /></label></th>
@@ -244,16 +272,18 @@
     </tr>
 </l:settingsGroup>
 
+
+
 <l:settingsGroup title="Thresholds">
     <tr>
         <th>
             <a href="#" id="addThreshold" class="btn"><span class="addNew">Add Threshold</span></a>
         </th>
         <td><span class="smallNote">
-                You can configure one or more thresholds, which determines if a load-test should be marked as failed.
+                You can configure one or more thresholds, which determine if a load-test should be marked as failed.
             </span>
         </td>
-        
+
     </tr>
     <tr>
         <th>&nbsp;</th>

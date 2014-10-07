@@ -171,16 +171,4 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
         Gson gson = new Gson();
         return gson.fromJson(json, LoadTestHistory.class);
     }
-
-    private void saveToLocalStorage(File sourceFile, String contents) throws IOException
-    {
-        FileWriter fileWriter = new FileWriter(sourceFile);
-        if (!sourceFile.exists())
-        {
-            throw new IOException("History source file doesn't exist.");
-        }
-        BufferedWriter bw = new BufferedWriter(fileWriter);
-        bw.write(contents);
-        bw.close();
-    }
 }
