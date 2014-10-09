@@ -57,7 +57,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
     public BuildFinishedStatus call() throws Exception
     {
         TeamCityLoadTestLogger logger = new TeamCityLoadTestLogger(this.build.getBuildLogger());
-        logger.started("Apica Self Service Load Test");
+        logger.started("Apica Loadtest");
 
         LoadTestParameters params = new LoadTestParameters(this.context.getRunnerParameters());
         ApicaSettings apicaSettings = new ApicaSettings();

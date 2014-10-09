@@ -22,8 +22,8 @@ public interface LtpSelfServiceConstants
     String SETTINGS_LTP_ENVIRONMENT = "apica.selfservice.environment";
     
     String RUNNER_TYPE = "LTP SelfService";
-    String RUNNER_DISPLAY_NAME = "Apica Self Service";
-    String RUNNER_DESCRIPTION = "Apica Self Service runner";
+    String RUNNER_DISPLAY_NAME = "Apica Loadtest";
+    String RUNNER_DESCRIPTION = "Apica load test runner";
     
     String LTP_WEB_SERVICE_SCHEME = "http";
     String LTP_WEB_SERVICE_PRESET_ENDPOINT = "selfservicepresets";

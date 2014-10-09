@@ -4,7 +4,7 @@
     <name>ltpselfservice</name>
     <display-name>ltpselfservice</display-name>
     <version>1</version>
-    <description>This plugin runs an Apica self service</description>
+    <description>This plugin runs an Apica load test</description>
     <download-url>Plugin download URL</download-url>
     <email>Plugin author e-mail</email>
     <vendor>
