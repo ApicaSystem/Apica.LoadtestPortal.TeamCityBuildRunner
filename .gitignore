@@ -15,3 +15,16 @@ hs_err_pid*
 /ltpselfservice/ltpselfservice-agent/target/
 /ltpselfservice/build/target/
 /ltpselfservice/target/
+/ltpselfservice/ltploadtest-common/target/
+/ltpselfservice/ltploadtest-server/target/
+/ltpselfservice/ltploadtest-agent/target/
+/ltploadtest/target/
+/ltploadtest/build/target/
+/ltploadtest/ltploadtest-agent/target/
+/ltploadtest/ltploadtest-common/target/
+/ltploadtest/ltploadtest-server/target/
+/Apica_Loadtest_TeamCity_Plugin/target/
+/Apica_Loadtest_TeamCity_Plugin/build/target/
+/Apica_Loadtest_TeamCity_Plugin/ltploadtest-agent/target/
+/Apica_Loadtest_TeamCity_Plugin/ltploadtest-common/target/
+/Apica_Loadtest_TeamCity_Plugin/ltploadtest-server/target/
