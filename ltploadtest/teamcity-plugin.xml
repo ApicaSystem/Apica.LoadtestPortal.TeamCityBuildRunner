@@ -2,15 +2,11 @@
 <teamcity-plugin xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:shemas-jetbrains-com:teamcity-plugin-v1-xml">
   <info>
     <name>ltploadtest</name>
-    <display-name>ltploadtest</display-name>
-    <version>1</version>
-    <description>This plugin runs an Apica load test</description>
-    <download-url>Plugin download URL</download-url>
-    <email>Plugin author e-mail</email>
+    <display-name>LtpLoadtest</display-name>
+    <version>1</version>    
     <vendor>
       <name>ApicaSystem AB</name>
-      <url>http://www.apicasystem.com/</url>
-      <logo></logo>
+      <url>http://www.apicasystem.com/</url>      
     </vendor>
   </info>
   <deployment use-separate-classloader="true" />
