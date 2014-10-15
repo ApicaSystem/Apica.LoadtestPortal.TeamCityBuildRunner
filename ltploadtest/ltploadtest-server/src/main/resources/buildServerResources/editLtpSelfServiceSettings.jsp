@@ -215,7 +215,7 @@
     </tr>
 </l:settingsGroup>
 
-<l:settingsGroup title="LTP Self Service Installation">
+<l:settingsGroup title="Installation">
     <tr>
         <th><label for="${constants.ltpApiAuthToken}">LTP authentication token: <l:star /></label></th>
         <td><props:textProperty id="${constants.ltpApiAuthToken}" name="${constants.ltpApiAuthToken}" className="longField"/>
@@ -232,10 +232,10 @@
         </td>        
     </tr>
     <tr>
-        <th><label for="${constants.ltpRunnableFileName}">Load test file: <l:star /></label></th>
+        <th><label for="${constants.ltpRunnableFileName}">Load test scenario: <l:star /></label></th>
         <td><props:textProperty id="${constants.ltpRunnableFileName}" name="${constants.ltpRunnableFileName}" className="longField"/>
             <span class="error" id="error_${constants.ltpRunnableFileName}" />
-            <span class="smallNote" >The name of the load test preset as you saved it in LTP</span>            
+            <span class="smallNote" >The name of the load test scenario to run the loadtest with e.g myscenario.class or scenario1.zip</span>            
         </td>        
     </tr>
 </l:settingsGroup>
@@ -245,7 +245,7 @@
 <l:settingsGroup title="Thresholds">
     <tr>
         <th>
-            <a href="#" id="addThreshold" class="btn"><span class="addNew">Add Threshold</span></a>
+            <a href="#" id="addThreshold" class="btn"><span class="addNew">Add threshold</span></a>
         </th>
         <td><span class="smallNote">
                 You can configure one or more thresholds, which determine if a load-test should be marked as failed.

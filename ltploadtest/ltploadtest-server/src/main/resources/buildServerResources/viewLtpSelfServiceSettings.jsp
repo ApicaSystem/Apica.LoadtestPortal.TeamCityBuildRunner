@@ -6,13 +6,13 @@
 <jsp:useBean id="constants" class="com.apicasystem.ltpselfservice.LtpSelfServiceContanstsBean" />
 
 <div class="parameter">
-    Self service authentication token: <strong><props:displayValue name="${constants.ltpApiAuthToken}" emptyValue="not specified" /></strong>
+    Load test authentication token: <strong><props:displayValue name="${constants.ltpApiAuthToken}" emptyValue="not specified" /></strong>
 </div>
 
 <div class="parameter">
-  Self service preset name: <strong><props:displayValue name="${constants.ltpPresetName}" emptyValue="not specified"/></strong>
+  Load test preset name: <strong><props:displayValue name="${constants.ltpPresetName}" emptyValue="not specified"/></strong>
 </div>
 
 <div class="parameter">
-  Load test file name: <strong><props:displayValue name="${constants.ltpRunnableFileName}" emptyValue="not specified"/></strong>
+  Load test scenario file name: <strong><props:displayValue name="${constants.ltpRunnableFileName}" emptyValue="not specified"/></strong>
 </div>
