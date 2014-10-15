@@ -195,9 +195,9 @@
 
 </script>
 
-<l:settingsGroup title="Load Test Environment">
+<l:settingsGroup title="Environment">
     <tr>
-        <th>Test Environment</th>
+        <th>Test environment</th>
         <td>
             <props:selectProperty name="loadtest.environment">
                 <c:forEach items="${environments}" var="unit">
