@@ -8,6 +8,11 @@ This should create a zip file called "Apica_Loadtest_TeamCity_Plugin.zip" within
 
 Then copy the zip file to the plugins folder of the TeamCity installation folder. You'll need to restart the TeamCity server and agent processes.
 
+Requirements:
+======
+- TeamCity (minimum recommended version is 8)
+- An account in Apica Loadtest Portal (Sign up for a Trial Account at www.apicasystem.com)
+
 Usage:
 ======
 
@@ -38,6 +43,6 @@ Statistics:
 
 The job statisics will be available after a successful run in the following formats:
 
-- a file called load-test-results.txt will be created as an artifact and includes the JSON representation of some basic ob stats such as average response time per page
+- a file called load-test-results.txt will be created as an artifact and includes the JSON representation of some basic job stats such as average response time per page
 - you can view the same set of job statistics under the Apica Load Test Summary tab in a tabular format
 - you can also view a trend chart under the Apica Load Test Trends tab which shows a Continuous Integration page from the Loadtest Portal
