@@ -13,7 +13,8 @@ public class StandardMetricResult extends Result
     public static enum Metrics
     {
 
-        failure_rate("percent", "Failure loop rate", "%"), average_page_response_time("value", "Average page response time", "ms");
+        failure_rate("percent", "Failure loop rate", "%"), 
+        average_page_response_time("value", "Average page response time", "ms");
 
         public final String id;
         public final String valueName;

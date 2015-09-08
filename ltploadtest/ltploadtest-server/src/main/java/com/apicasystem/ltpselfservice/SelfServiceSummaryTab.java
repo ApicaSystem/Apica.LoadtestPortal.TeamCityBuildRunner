@@ -1,8 +1,14 @@
 package com.apicasystem.ltpselfservice;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.web.openapi.PagePlaces;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -21,6 +27,7 @@ public class SelfServiceSummaryTab extends ApicaLoadTestTabBase
         setPluginName(getClass().getSimpleName());
         setIncludeUrl(descriptor.getPluginResourcesPath(getJspName()));
         addCssFile(descriptor.getPluginResourcesPath("css/style.css"));
+
     }
 
     protected String getTitle()
@@ -58,6 +65,8 @@ public class SelfServiceSummaryTab extends ApicaLoadTestTabBase
             }));
         }
 
+        String buildSteps = getListOfBuildSteps(build);
+        model.put("buildSteps", buildSteps);
         SummaryArtifactReadingResult artifactReadingResult = loadRawResultsFromArtifact(request);
         if (artifactReadingResult == null || !artifactReadingResult.isHasResult()
                 || artifactReadingResult.getLoadTestStatistics() == null)
@@ -83,5 +92,44 @@ public class SelfServiceSummaryTab extends ApicaLoadTestTabBase
         model.put("totalHttpCalls", statistics.getTotalHttpCalls());
         model.put("averageNetworkConnectTime", statistics.getAverageNetworkConnectTime());
         model.put("totalTransmittedBytes", statistics.getTotalTransmittedBytes());
+    }
+
+    public String getListOfBuildSteps(SBuild build)
+    {
+        try
+        {
+            List<String> buildSteps = new ArrayList<String>();
+            if (build != null)
+            {
+                Iterator<SBuildRunnerDescriptor> descriptorIterator = build.getBuildType().getBuildRunners().iterator();
+                while (descriptorIterator.hasNext())
+                {
+                    SBuildRunnerDescriptor desc = descriptorIterator.next();
+                    String type = desc.getType();
+                    if (type != null)
+                    {
+                        buildSteps.add(type);
+                    }
+                }
+            }
+            if (buildSteps.size() > 0)
+            {
+                StringBuilder sb = new StringBuilder();
+                for (String buildStep : buildSteps)
+                {
+                    sb.append(buildStep).append(";");
+                }
+                return sb.toString();
+            }
+        } catch (Exception ex)
+        {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            String exception = sw.toString();
+            return exception;
+        }
+
+        return "Could not locate build steps";
     }
 }

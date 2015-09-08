@@ -1,9 +1,13 @@
 package com.apicasystem.ltpselfservice;
 
 import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.web.openapi.PagePlaces;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -34,6 +38,7 @@ public class SelfServiceResultsTab extends ApicaLoadTestTabBase
     @Override
     protected void fillModel(Map<String, Object> model, HttpServletRequest request, SBuild build)
     {
+        
         if (model == null)
         {
             throw new IllegalArgumentException(String.format("Argument for @NotNull parameter '%s' of %s.%s must not be null", new Object[]
@@ -57,7 +62,8 @@ public class SelfServiceResultsTab extends ApicaLoadTestTabBase
         }
 
         LoadtestMetadataReadResult metadataResult = loadMetadataFromArtifact(request);
-
+        
+        
         if (metadataResult.isLoadSuccess())
         {
             LoadtestMetadata metadata = metadataResult.getMetadata();
@@ -73,7 +79,9 @@ public class SelfServiceResultsTab extends ApicaLoadTestTabBase
         } else
         {
             model.put("hasResults", false);
-            model.put("loadFailure", metadataResult.getLoadFailureReason());
+            model.put("loadFailure", metadataResult.getLoadFailureReason());            
         }
     }
+    
+    
 }

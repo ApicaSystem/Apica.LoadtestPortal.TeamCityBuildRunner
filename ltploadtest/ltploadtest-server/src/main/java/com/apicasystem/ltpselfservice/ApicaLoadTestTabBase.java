@@ -5,8 +5,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildRunnerDescriptor;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
@@ -21,13 +25,46 @@ public abstract class ApicaLoadTestTabBase extends ViewLogTab
 
     private final PluginDescriptor pluginDescriptor;
     private final SBuildServer buildServer;
+    private final String pluginName;
+    private SBuild currentServerBuild;
 
     public ApicaLoadTestTabBase(@NotNull PagePlaces pagePlaces,
             @NotNull SBuildServer server, @NotNull PluginDescriptor descriptor)
     {
         super("", "", pagePlaces, server);
+
         buildServer = server;
         this.pluginDescriptor = descriptor;
+        this.pluginName = descriptor.getPluginName();
+    }
+
+    @Override
+    public boolean isAvailable(@NotNull HttpServletRequest request,
+            @NotNull SBuild build)
+    {
+        SBuild sbuild = this.getBuild(request);
+        if (sbuild != null)
+        {
+            boolean hasLTPstep = hasLTPstep(sbuild);
+            return super.isAvailable(request, build) && hasLTPstep;
+        }
+        return false;
+    }
+
+    private boolean hasLTPstep(@NotNull SBuild sbuild)
+    {
+
+        Iterator<SBuildRunnerDescriptor> descriptorIterator = sbuild.getBuildType().getBuildRunners().iterator();
+        boolean hasLTPstep = false;
+        while (descriptorIterator.hasNext())
+        {
+            SBuildRunnerDescriptor desc = descriptorIterator.next();
+            if (desc.getType().equalsIgnoreCase(LtpSelfServiceConstants.RUNNER_TYPE))
+            {
+                hasLTPstep = true;
+            }
+        }
+        return hasLTPstep;
     }
 
     public LoadtestMetadataReadResult loadMetadataFromArtifact(HttpServletRequest request)

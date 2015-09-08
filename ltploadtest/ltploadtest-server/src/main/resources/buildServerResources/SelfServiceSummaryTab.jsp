@@ -58,7 +58,7 @@
             <tr>
                 <th>Total transmitted bytes</th>
                 <td>${totalTransmittedBytes}</td>
-            </tr>
+            </tr>            
         </table>
     </c:if>    
         

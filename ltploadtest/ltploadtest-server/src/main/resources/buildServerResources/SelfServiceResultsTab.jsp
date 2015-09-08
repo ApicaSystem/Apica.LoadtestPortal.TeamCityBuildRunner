@@ -4,8 +4,7 @@
 
 <div id="self-service-trends">
     <img src="${teamcityPluginResourcesPath}image/apica-loadtest-logo.png">
-    <h2>Apica Load Test Trends</h2>
-    
+    <h2>Apica Load Test Trends</h2>    
    <c:if test="${hasResults}">
        <c:if test="${not empty resultUrl}">
             <iframe width="1200" height="1000" src="${resultUrl}">
