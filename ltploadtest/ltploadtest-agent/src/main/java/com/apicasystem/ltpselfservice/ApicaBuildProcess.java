@@ -24,12 +24,15 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import jetbrains.buildServer.agent.AgentRunningBuild;
 import jetbrains.buildServer.agent.BuildFinishedStatus;
+import jetbrains.buildServer.agent.BuildProgressLogger;
 import jetbrains.buildServer.agent.BuildRunnerContext;
 import jetbrains.buildServer.agent.artifacts.ArtifactsWatcher;
+import jetbrains.buildServer.messages.DefaultMessagesInfo;
+import jetbrains.buildServer.messages.serviceMessages.ProgressFinish;
+import jetbrains.buildServer.messages.serviceMessages.ServiceMessage;
 
 public class ApicaBuildProcess extends FutureBasedBuildProcess
 {
@@ -44,7 +47,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
     {
         this.build = build;
         this.context = context;
-        this.artifactsWatcher = artifactsWatcher;
+        this.artifactsWatcher = artifactsWatcher;        
     }
 
     public BuildFinishedStatus call() throws Exception
@@ -61,7 +64,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             logger.failure(validationResult.getExceptionMessage());
             return BuildFinishedStatus.FINISHED_FAILED;
         }
-
+        
         List<Threshold> thresholds = new ArrayList<Threshold>();
         try
         {
@@ -149,7 +152,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         String loadtestFileName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "");
         String authToken = params.get(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "");
         BuildFinishedStatus status = BuildFinishedStatus.FINISHED_SUCCESS;
-
+        LoadtestJobSummaryResponse summaryResponseIfTestPasses = null;
         try
         {
             String scheme = LtpSelfServiceConstants.LTP_WEB_SERVICE_SCHEME;
@@ -207,6 +210,7 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                     LoadtestJobSummaryResponse summaryResponse = getJobSummaryResponse(summaryRequest);
                     logJobSummary(summaryResponse, logger);
                     saveJobSummary(summaryResponse, logger, loadtestPresetName);
+                    summaryResponseIfTestPasses = summaryResponse;
                     try
                     {
                         logger.message("Storing load test metadata...");
@@ -245,6 +249,27 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             status = BuildFinishedStatus.FINISHED_FAILED;
         }
 
+        if (status == BuildFinishedStatus.FINISHED_SUCCESS)
+        {
+            String statusMessage = String.format("##teamcity[buildStatus status='%s' text='%s']", "SUCCESS", "Success");
+            if (summaryResponseIfTestPasses != null)
+            {
+                statusMessage = String.format("##teamcity[buildStatus status='%s' text='%s']", "SUCCESS", "Success: ".concat(summaryResponseIfTestPasses.toStatusMessageString()));
+            }
+            
+            BuildProgressLogger buildLogger = this.build.getBuildLogger();
+            buildLogger.logMessage(DefaultMessagesInfo.createTextMessage(statusMessage));
+            /*
+            System.out.print(statusMessage);
+            logger.message(statusMessage);            
+            logger.message("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");
+            logger.finished("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");            
+            System.out.print("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");
+            System.out.println("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");
+            
+            buildLogger.targetFinished("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");
+            buildLogger.progressMessage("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");*/
+        }
         return status;
     }
 

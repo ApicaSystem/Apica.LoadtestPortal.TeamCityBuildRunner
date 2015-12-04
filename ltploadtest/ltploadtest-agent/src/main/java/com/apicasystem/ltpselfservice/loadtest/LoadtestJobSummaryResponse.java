@@ -47,6 +47,21 @@ public class LoadtestJobSummaryResponse
         return this.performanceSummary;
     }
 
+    public String toStatusMessageString()
+    {
+        StringBuilder sb = new StringBuilder();
+        PerformanceSummary summary = getPerformanceSummary();
+        int totalFailedLoops = summary.getTotalFailedLoops();
+        int totalPassedLoops = summary.getTotalPassedLoops();
+        int totalLoops = totalFailedLoops + totalPassedLoops;
+        float failureRate = (float) totalFailedLoops / (float) totalLoops;
+        long failureRateRounded = Math.round(failureRate);
+        sb.append(failureRateRounded).append("% failure rate, ")
+                .append(Math.round(summary.getWebTransactionRate())).append(" hits/s, avg resp time per loop ")
+                .append(summary.getAverageResponseTimePerLoop()).append("s");
+        return sb.toString();
+    }
+
     @Override
     public String toString()
     {
