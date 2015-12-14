@@ -34,6 +34,12 @@ public class LtpSelfServiceContanstsBean
     {
         return LtpSelfServiceConstants.SETTINGS_LTP_THRESHOLD_SETTINGS;
     }
+    
+    @NotNull
+    public String getLtpRelativeThresholdSettings()
+    {
+        return LtpSelfServiceConstants.SETTINGS_LTP_RELATIVE_THRESHOLD_SETTINGS;
+    }
 
     @NotNull
     public String getLtpEnvironment()

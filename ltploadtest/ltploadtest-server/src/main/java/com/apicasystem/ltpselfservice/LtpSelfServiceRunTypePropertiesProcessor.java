@@ -2,6 +2,7 @@ package com.apicasystem.ltpselfservice;
 
 import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
 import com.apicasystem.ltpselfservice.resources.Threshold;
+import com.apicasystem.ltpselfservice.resources.ThresholdType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -12,8 +13,8 @@ import jetbrains.buildServer.util.PropertiesUtil;
 
 public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProcessor
 {
-
-    private List<Threshold> thresholds;
+    private List<Threshold> relativeThresholds;
+    private List<Threshold> absoluteThresholds;
     private LtpEnvironmentType environmentType;
 
     public Collection<InvalidProperty> process(Map<String, String> properties)
@@ -33,10 +34,19 @@ public class LtpSelfServiceRunTypePropertiesProcessor implements PropertiesProce
 
         try
         {
-            this.thresholds = ApicaSettings.instance().parseThresholds(properties);
+            this.absoluteThresholds = ApicaSettings.instance().parseThresholds(properties, ThresholdType.Absolute);
         } catch (Exception ex)
         {
             result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_THRESHOLD_SETTINGS, ex.getMessage()));
+        }
+        
+        try
+        {
+            this.relativeThresholds = ApicaSettings.instance().parseThresholds(properties, ThresholdType.Relative);
+        }
+        catch (Exception ex)
+        {
+            result.add(new InvalidProperty(LtpSelfServiceConstants.SETTINGS_LTP_RELATIVE_THRESHOLD_SETTINGS, ex.getMessage()));
         }
 
         if (PropertiesUtil.isEmptyOrNull(authToken))

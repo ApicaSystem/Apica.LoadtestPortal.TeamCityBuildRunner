@@ -8,6 +8,7 @@ public interface LtpSelfServiceConstants
     String SETTINGS_LTP_RUNNABLE_FILE = "apica.selfservice.runnablefile";
     String SETTINGS_LTP_PRESET_TESTINSTANCE_ID = "apica.selfservice.preset.instanceid";
     String SETTINGS_LTP_THRESHOLD_SETTINGS = "apica.selfservice.thresholds";
+    String SETTINGS_LTP_RELATIVE_THRESHOLD_SETTINGS = "apica.selfservice.relative-thresholds";
     String SETTINGS_LTP_ENVIRONMENT = "apica.selfservice.environment";
 
     String RUNNER_TYPE = "LTP SelfService";

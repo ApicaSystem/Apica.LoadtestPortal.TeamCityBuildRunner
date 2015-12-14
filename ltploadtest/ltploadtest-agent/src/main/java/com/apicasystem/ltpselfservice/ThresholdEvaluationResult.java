@@ -7,7 +7,8 @@ public class ThresholdEvaluationResult
 {
 
     private boolean thresholdBroken;
-    private final List<String> exceededThresholdsDescription;
+    private final List<String> exceededThresholdsDescriptions;
+    private final List<String> passedThresholdsDescriptions;
     private String rawEvaluationResult;
 
     public String getRawEvaluationResult()
@@ -22,7 +23,8 @@ public class ThresholdEvaluationResult
 
     public ThresholdEvaluationResult()
     {
-        exceededThresholdsDescription = new ArrayList<String>();
+        exceededThresholdsDescriptions = new ArrayList<String>();
+        passedThresholdsDescriptions = new ArrayList<String>();
     }
 
     public boolean isThresholdBroken()
@@ -35,23 +37,32 @@ public class ThresholdEvaluationResult
         this.thresholdBroken = thresholdBroken;
     }
 
-    public List<String> getExceededThresholdsDescription()
+    public List<String> getExceededThresholdsDescriptions()
     {
-        return exceededThresholdsDescription;
+        return exceededThresholdsDescriptions;
     }
 
     public void addThresholdExceededDescription(String description)
     {
-        exceededThresholdsDescription.add(description);
+        exceededThresholdsDescriptions.add(description);
+    }
+    
+    public void addThresholdPassedDescription(String description)
+    {
+        passedThresholdsDescriptions.add(description);
     }
 
     @Override
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        for (String string : exceededThresholdsDescription)
+        for (String exceeded : exceededThresholdsDescriptions)
         {
-            sb.append(string).append("\r\n");
+            sb.append(exceeded).append("\r\n");
+        }
+        for (String passed : passedThresholdsDescriptions)
+        {
+            sb.append(passed).append("\r\n");
         }
         return sb.toString();
     }

@@ -62,6 +62,21 @@
     </div>
 </div>
 
+<div id="relative-threshold" style="display: none;">
+    <div id="relative_threshold_{0}" class="threshold" style="display: none;">
+        <strong>IF</strong>
+        <select id="relative_threshold_{0}_metric" name="prop:relative_threshold.{0}.metric" class="LI_dropList"> {1} </select>
+        <span>of current test is</span>
+        <select id="relative_threshold_{0}_operator" name="prop:relative_threshold.{0}.operator" class="LI_dropList"> {2} </select>
+        <span>than in previous successful test by</span>
+        <input type="text" id="relative_threshold_{0}_value" name="prop:relative_threshold.{0}.value" value="{3}" class="LI_numericField"/>
+        <span>%</span>
+        <strong>THEN</strong> mark as
+        <select id="relative_threshold_{0}_result" name="prop:relative_threshold.{0}.result"  class="LI_dropList"> {4} </select>
+        <a href="#" id="relative_threshold_{0}_remove" class="LI_removeButton">X</a>
+    </div>
+</div>
+
 <%--
     Styles
 --%>
@@ -110,13 +125,15 @@
     var operators = ${json.operators};
     var actions = ${json.actions};
     var thresholds = ${json.thresholds};
+    var relativeThresholds = ${json.relativeThresholds};
     var chosenTestConfiguration = "${chosenTestConfiguration}";
-    var nextMetricId = 1;
+    var nextAbsoluteMetricId = 1;
+    var nextRelativeMetricId = 1;
 
-    String.prototype.format = function() {
+    String.prototype.format = function () {
         var args = arguments;
-        return this.replace(/{(\d+)}/g, function(match, number) {
-            return typeof args[number] != 'undefined' ? args[number] : match;
+        return this.replace(/{(\d+)}/g, function (match, number) {
+            return typeof args[number] !== 'undefined' ? args[number] : match;
         });
     };
 
@@ -124,71 +141,107 @@
         var result = "";
         for (var k = 0; k < items.length; ++k) {
             var item = items[k];
-            result += tmpl.format(item.name, item.label, (item.name == selected) ? "SELECTED=''" : "");
+            result += tmpl.format(item.name, item.label, (item.name === selected) ? "SELECTED=''" : "");
         }
         return result;
     }
 
-    function mkThreshold(id, metric, operator, value, action) {
+    function mkThreshold(id, metric, operator, value, action, type)
+    {
+        var idName = "#threshold";
+        if (type === "rel")
+        {
+            idName = "#relative-threshold";
+        }
         var optionTmpl = $j("#option").html();
         var metricItems = mkOptions(optionTmpl, metrics, metric);
         var operatorItems = mkOptions(optionTmpl, operators, operator);
         var actionItems = mkOptions(optionTmpl, actions, action);
 
-        var thresholdTmpl = $j("#threshold").html();
+        var thresholdTmpl = $j(idName).html();
         var thresholdHtml = thresholdTmpl.format(id, metricItems, operatorItems, value, actionItems);
 
         return thresholdHtml;
     }
 
-    function insertThreshold(id, metric, operator, value, action) {
-        var thresholdHtml = mkThreshold(id, metric, operator, value, action);
+    function insertThreshold(id, metric, operator, value, action, type) {
+        var thresholdHtml = mkThreshold(id, metric, operator, value, action, type);
 
         // Append HTML to threshold DIV
-        var thresholdsDiv = $j("#thresholds");
-        $j(thresholdHtml).appendTo(thresholdsDiv).slideDown("slow");
+        if (type === "abs")
+        {
+            var thresholdsDiv = $j("#thresholds");
+            $j(thresholdHtml).appendTo(thresholdsDiv).slideDown("slow");
 
-        // Attach click-handler to Remove button
-        $j("#threshold_" + id + "_remove").click(function() {
-            var target = $j("#threshold_" + id);
-            target.slideUp("slow", function() {
-                target.remove();
+            // Attach click-handler to Remove button
+            $j("#threshold_" + id + "_remove").click(function () {
+                var target = $j("#threshold_" + id);
+                target.slideUp("slow", function () {
+                    target.remove();
+                });
+                return false;
             });
-            return false;
-        });
 
-        // Attach change-handler to metrics drop-list
-        $j("#threshold_" + id + "_metric").change(function() {
-            var valueSelected = $j(this).find("option:selected").val();
-            for (var k = 0; k < metrics.length; ++k) {
-                if (metrics[k].name == valueSelected) {
-                    $j("#threshold_" + id + "_unit").text(metrics[k].unit);
-                    break;
+            // Attach change-handler to metrics drop-list
+            $j("#threshold_" + id + "_metric").change(function () {
+                var valueSelected = $j(this).find("option:selected").val();
+                for (var k = 0; k < metrics.length; ++k) {
+                    if (metrics[k].name === valueSelected) {
+                        $j("#threshold_" + id + "_unit").text(metrics[k].unit);
+                        break;
+                    }
                 }
-            }
-            return false;
-        }).change();
+                return false;
+            }).change();
+        }
+        else if (type === "rel")
+        {
+            var thresholdsDiv = $j("#relative-thresholds");
+            $j(thresholdHtml).appendTo(thresholdsDiv).slideDown("slow");
+
+            // Attach click-handler to Remove button
+            $j("#relative_threshold_" + id + "_remove").click(function () {
+                var target = $j("#relative_threshold_" + id);
+                target.slideUp("slow", function () {
+                    target.remove();
+                });
+                return false;
+            });            
+        }
     }
 
-    $j(document).ready(function() {
+    $j(document).ready(function () {
         console.log("[Apica] Initializing ...");
         console.log("[Apica] metrics: " + JSON.stringify(metrics, null, 2));
         console.log("[Apica] operators: " + JSON.stringify(operators, null, 2));
         console.log("[Apica] actions: " + JSON.stringify(actions, null, 2));
         console.log("[Apica] thresholds: " + JSON.stringify(thresholds, null, 2));
+        console.log("[Apica] relative thresholds: " + JSON.stringify(relativeThresholds, null, 2));
         console.log("[Apica] chosenTestConfiguration: " + chosenTestConfiguration);
 
         // Attach click-handler to the 'Add Threshold' button
-        $j("#addThreshold").click(function() {
-            insertThreshold(nextMetricId++, "average_page_response_time", "greaterThan", 5000, "failed");
+        $j("#addThreshold").click(function () {
+            insertThreshold(nextAbsoluteMetricId++, "average_page_response_time", "greaterThan", 5000, "failed", "abs");
+            return false;
+        });
+        
+        // Attach click-handler to the 'Add Threshold' button
+        $j("#addRelativeThreshold").click(function () {
+            insertThreshold(nextRelativeMetricId++, "average_page_response_time", "greaterThan", 10, "failed", "rel");
             return false;
         });
 
-        // Populate stored thresholds
+        // Populate stored absolute thresholds
         for (var k = 0; k < thresholds.length; ++k) {
             var t = thresholds[k];
-            insertThreshold(nextMetricId++, t.metric, t.operator, t.value, t.action);
-        }        
+            insertThreshold(nextAbsoluteMetricId++, t.metric, t.operator, t.value, t.action, "abs");
+        }
+        
+        // Populate stored relative thresholds
+        for (var k = 0; k < relativeThresholds.length; ++k) {
+            var t = relativeThresholds[k];
+            insertThreshold(nextRelativeMetricId++, t.metric, t.operator, t.value, t.action, "rel");
+        }
 
         console.log("[Apica] Initialized");
     });
@@ -240,12 +293,10 @@
     </tr>
 </l:settingsGroup>
 
-
-
-<l:settingsGroup title="Thresholds">
+<l:settingsGroup title="Absolute thresholds">
     <tr>
         <th>
-            <a href="#" id="addThreshold" class="btn"><span class="addNew">Add threshold</span></a>
+            <a href="#" id="addThreshold" class="btn"><span class="addNew">Add absolute threshold</span></a>
         </th>
         <td><span class="smallNote">
                 You can configure one or more thresholds, which determine if a load-test should be marked as failed.
@@ -264,4 +315,27 @@
         <td id="thresholds"></td>
     </tr>
 
+</l:settingsGroup>
+
+<l:settingsGroup title="Relative thresholds">
+    <tr>
+        <th>
+            <a href="#" id="addRelativeThreshold" class="btn"><span class="addNew">Add relative threshold</span></a>
+        </th>
+        <td><span class="smallNote">
+                You can configure one or more thresholds based on the outcome of the most recent successful build.
+            </span>
+        </td>
+
+    </tr>
+    <tr>
+        <th>&nbsp;</th>
+        <td>
+            <span class="error" id="error_${constants.ltpRelativeThresholdSettings}" />
+        </td>
+    </tr>
+    <tr>
+        <th>&nbsp;</th>
+        <td id="relative-thresholds"></td>
+    </tr>
 </l:settingsGroup>

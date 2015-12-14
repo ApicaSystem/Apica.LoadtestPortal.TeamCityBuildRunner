@@ -3,6 +3,7 @@ package com.apicasystem.ltpselfservice;
 import com.apicasystem.ltpselfservice.resources.LoadTestResult;
 import com.apicasystem.ltpselfservice.resources.Operator;
 import com.apicasystem.ltpselfservice.resources.StandardMetricResult;
+import com.apicasystem.ltpselfservice.resources.ThresholdType;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
@@ -92,16 +93,30 @@ public class JsonGenerator
         return buf.toString();
     }
 
-    public String getThresholds(Map<String, String> settings)
+    public String getThresholds(Map<String, String> settings, ThresholdType thresholdType)
     {
         this.debug.print("getThresholds: %s", new Object[]
         {
             settings
         });
 
+        String thresholdPropertyName = "";
+        switch (thresholdType)
+        {
+            case Absolute:
+                thresholdPropertyName = "threshold";
+                break;
+            case Relative:
+                thresholdPropertyName = "relative_threshold";
+                break;
+            default:
+                thresholdPropertyName = "threshold";
+                break;
+        }
+
         JsonArrayBuilder builder = Json.createArrayBuilder();
 
-        Pattern pattern = Pattern.compile("threshold\\.(\\d+)\\.value");
+        Pattern pattern = Pattern.compile(thresholdPropertyName + "\\.(\\d+)\\.value");
         for (String key : settings.keySet())
         {
             Matcher m = pattern.matcher(key);
@@ -113,10 +128,10 @@ public class JsonGenerator
                     id
                 });
 
-                String metric = (String) settings.get("threshold." + id + ".metric");
-                String operator = (String) settings.get("threshold." + id + ".operator");
-                String value = (String) settings.get("threshold." + id + ".value");
-                String action = (String) settings.get("threshold." + id + ".result");
+                String metric = (String) settings.get(thresholdPropertyName + "." + id + ".metric");
+                String operator = (String) settings.get(thresholdPropertyName + "." + id + ".operator");
+                String value = (String) settings.get(thresholdPropertyName + "." + id + ".value");
+                String action = (String) settings.get(thresholdPropertyName + "." + id + ".result");
 
                 builder.add(Json.createObjectBuilder().add("metric", metric).add("operator", operator).add("value", Integer.parseInt(value)).add("action", action).build());
             }
@@ -128,6 +143,11 @@ public class JsonGenerator
 
     public String getThresholds()
     {
-        return getThresholds(this.settings);
+        return getThresholds(this.settings, ThresholdType.Absolute);
+    }
+
+    public String getRelativeThresholds()
+    {
+        return getThresholds(settings, ThresholdType.Relative);
     }
 }

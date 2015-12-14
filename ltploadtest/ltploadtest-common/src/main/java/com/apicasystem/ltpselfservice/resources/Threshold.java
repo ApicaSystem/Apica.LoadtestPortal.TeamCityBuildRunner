@@ -98,6 +98,16 @@ public class Threshold
 
         return sb.toString();
     }
+    
+    public String toRelativeThresholdString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("If ").append(metric.toString()).append(" of current test is ").append(operator.getDescription())
+                .append(" than in previous successful test by ").append(Integer.toString(thresholdValue)).append("%")                
+                .append(" then mark test as ").append(result.toString());
+
+        return sb.toString();
+    }
 
     public String getReason()
     {

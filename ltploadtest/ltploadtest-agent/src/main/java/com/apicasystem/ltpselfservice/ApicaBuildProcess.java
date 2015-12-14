@@ -6,6 +6,7 @@ import com.apicasystem.ltpselfservice.resources.LtpEnvironmentType;
 import com.apicasystem.ltpselfservice.resources.Operator;
 import com.apicasystem.ltpselfservice.resources.StandardMetricResult;
 import com.apicasystem.ltpselfservice.resources.Threshold;
+import com.apicasystem.ltpselfservice.resources.ThresholdType;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import java.io.BufferedReader;
@@ -15,24 +16,36 @@ import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import jetbrains.buildServer.agent.AgentRunningBuild;
+import jetbrains.buildServer.agent.BuildAgentConfiguration;
 import jetbrains.buildServer.agent.BuildFinishedStatus;
 import jetbrains.buildServer.agent.BuildProgressLogger;
 import jetbrains.buildServer.agent.BuildRunnerContext;
 import jetbrains.buildServer.agent.artifacts.ArtifactsWatcher;
 import jetbrains.buildServer.messages.DefaultMessagesInfo;
-import jetbrains.buildServer.messages.serviceMessages.ProgressFinish;
-import jetbrains.buildServer.messages.serviceMessages.ServiceMessage;
+import org.apache.commons.codec.binary.Base64;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public class ApicaBuildProcess extends FutureBasedBuildProcess
 {
@@ -41,13 +54,14 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
     private final AgentRunningBuild build;
     private final BuildRunnerContext context;
     private final ArtifactsWatcher artifactsWatcher;
+    private final String NL = System.lineSeparator();
 
     public ApicaBuildProcess(AgentRunningBuild build, BuildRunnerContext context,
             ArtifactsWatcher artifactsWatcher)
     {
         this.build = build;
         this.context = context;
-        this.artifactsWatcher = artifactsWatcher;        
+        this.artifactsWatcher = artifactsWatcher;
     }
 
     public BuildFinishedStatus call() throws Exception
@@ -64,17 +78,35 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             logger.failure(validationResult.getExceptionMessage());
             return BuildFinishedStatus.FINISHED_FAILED;
         }
-        
-        List<Threshold> thresholds = new ArrayList<Threshold>();
+
+        List<Threshold> absoluteThresholds = new ArrayList<Threshold>();
         try
         {
-            thresholds = apicaSettings.parseThresholds(this.context.getRunnerParameters());
-            logger.message("Threshold values: \r\n".concat(apicaSettings.stringifiedThresholds(this.context.getRunnerParameters())));
+            absoluteThresholds = apicaSettings.parseThresholds(this.context.getRunnerParameters(), ThresholdType.Absolute);
+            logger.message("Absolute threshold values: \r\n".concat(apicaSettings.stringifiedThresholds(this.context.getRunnerParameters(), ThresholdType.Absolute)));
 
         } catch (Exception ex)
         {
             String message = ex.getMessage() == null ? "Null pointer exception." : ex.getMessage();
-            logger.message("Could not read threshold values: "
+            logger.message("Could not read absolute threshold values: "
+                    .concat(message).concat("\r\n"));
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            logger.message(sw.toString());
+            logger.message("\r\n");
+            logger.message(params.toString());
+        }
+
+        List<Threshold> relativeThresholds = new ArrayList<Threshold>();
+        try
+        {
+            relativeThresholds = apicaSettings.parseThresholds(this.context.getRunnerParameters(), ThresholdType.Relative);
+            logger.message("Relative threshold values: \r\n".concat(apicaSettings.stringifiedThresholds(this.context.getRunnerParameters(), ThresholdType.Relative)));
+        } catch (Exception ex)
+        {
+            String message = ex.getMessage() == null ? "Null pointer exception." : ex.getMessage();
+            logger.message("Could not read relative threshold values: "
                     .concat(message).concat("\r\n"));
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
@@ -87,7 +119,71 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         logger.message("Load test preset name: ".concat(params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "")));
         logger.message("Load test file name: ".concat(params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "")));
         logger.message("Load test environment: ".concat(parseEnvironmentType.getDisplayName()));
-        return runApicaSelfServiceJob(logger, params, thresholds, parseEnvironmentType);
+        return runApicaSelfServiceJob(logger, params, absoluteThresholds, relativeThresholds, parseEnvironmentType);
+    }
+
+    private SelfServiceStatisticsOfPreset extractTestResultOfPreviousSuccessfulBuild(TeamCityLoadTestLogger logger)
+    {
+        String teamcityRestUrl = getLatestBuildGetterUrl();
+        logger.message("****************************************************************");
+        logger.message("------ STARTING TEST RESULT EXTRACTION FROM PREVIOUS BUILD -----");
+        try
+        {
+            String auth = getBuilderAuthBase64();
+            String latestBuildXml = executeCallToTeamcityRestApi(teamcityRestUrl, auth);
+            logger.message("Content of latest build:");
+            logger.message(latestBuildXml);
+
+            String artifactsLink = getLatestBuildArtifactHref(latestBuildXml);
+            logger.message("Extracted artifacts link:");
+            logger.message(artifactsLink);
+
+            String artifactsGetterLink = getArtifactsGetterLink(artifactsLink);
+            logger.message("Extracted artifacts getter link:");
+            logger.message(artifactsGetterLink);
+
+            String artifactFilesXml = executeCallToTeamcityRestApi(artifactsGetterLink, auth);
+            logger.message("Artifacts content of latest successful build:");
+            logger.message(artifactFilesXml);
+
+            String testResultDownloadLink = getLatestTestResultDownloadLink(artifactFilesXml);
+            logger.message("Extracted test result download link:");
+            logger.message(testResultDownloadLink);
+
+            if (testResultDownloadLink == null)
+            {
+                throw new NullPointerException("Failed to locate the load test result artifact from the previous successful load test.");
+            }
+            String testResultFileContent = executeCallToTeamcityRestApi(getArtifactFileDownloaderLink(testResultDownloadLink), auth);
+            Gson gson = new Gson();
+            SelfServiceStatisticsOfPreset statisticsOfPreviousBuild = gson.fromJson(testResultFileContent, SelfServiceStatisticsOfPreset.class);
+            logger.message("Successfully parsed the content of the most recent test result:");
+            logger.message(testResultFileContent);
+            logger.message("------ TEST RESULT EXTRACTION FROM PREVIOUS BUILD SUCCESS  -----");
+            logger.message("****************************************************************");
+            return statisticsOfPreviousBuild;
+        } catch (MalformedURLException e)
+        {
+            logger.message("Malformed url exception during extraction of previous successful build: ".concat(e.getMessage()).concat(NL).concat(getExceptionStacktrace(e)));
+        } catch (IOException e)
+        {
+            logger.message("IOException during extraction of previous successful build: ".concat(e.getMessage()).concat(NL).concat(getExceptionStacktrace(e)));
+        } catch (ParserConfigurationException e)
+        {
+            logger.message("ParserConfigurationException during extraction of previous successful build: ".concat(e.getMessage()).concat(NL).concat(getExceptionStacktrace(e)));
+        } catch (SAXException e)
+        {
+            logger.message("SAXException during extraction of previous successful build: ".concat(e.getMessage()).concat(NL).concat(getExceptionStacktrace(e)));
+        } catch (JsonSyntaxException e)
+        {
+            logger.message("Json syntax exception exception during extraction of previous successful build: ".concat(e.getMessage()).concat(NL).concat(getExceptionStacktrace(e)));
+        } catch (NullPointerException e)
+        {
+            logger.message("Null pointer exception during extraction of previous successful build: ".concat(e.getMessage()).concat(NL).concat(getExceptionStacktrace(e)));
+        }
+        logger.message("------  TEST RESULT EXTRACTION FROM PREVIOUS BUILD FAILED  -----");
+        logger.message("****************************************************************");
+        return null;
     }
 
     private JobParamsValidationResult validateJobParams(LoadTestParameters params, LtpEnvironmentType environmentType)
@@ -143,11 +239,19 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         }
         return res;
     }
-    
-    private BuildFinishedStatus runApicaSelfServiceJob(TeamCityLoadTestLogger logger, LoadTestParameters params, List<Threshold> testThresholds, LtpEnvironmentType environmentType)
+
+    private BuildFinishedStatus runApicaSelfServiceJob(TeamCityLoadTestLogger logger, LoadTestParameters params,
+            List<Threshold> absoluteThresholds, List<Threshold> relativeThresholds, LtpEnvironmentType environmentType)
     {
-        logger.message("Attempting to initiate load test...");        
-        
+        logger.message("Attempting to initiate load test...");
+
+        SelfServiceStatistics statistics = null;
+        if (relativeThresholds != null && relativeThresholds.size() > 0)
+        {
+            logger.message("There's at least one relative threshold saved. Will now try to extract the load test result of the previous successful load test.");
+            SelfServiceStatisticsOfPreset testResultOfPreviousSuccessfulBuild = extractTestResultOfPreviousSuccessfulBuild(logger);
+            statistics = testResultOfPreviousSuccessfulBuild.getStatistics();
+        }
         String loadtestPresetName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "");
         String loadtestFileName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "");
         String authToken = params.get(LtpSelfServiceConstants.SETTINGS_LTP_API_AUTH_TOKEN, "");
@@ -220,15 +324,40 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                         logger.failure("Unable to save loadtest metadata: ".concat(ioe.getMessage()));
                     }
 
-                    if (testThresholds.size() > 0)
+                    if (absoluteThresholds.size() > 0)
                     {
-                        logger.message("Evaluating threshold values...");
-                        ThresholdEvaluationResult thresholdEvaluation = evaluateThreshold(summaryResponse, testThresholds);
-                        if (thresholdEvaluation.isThresholdBroken())
+                        logger.message("Evaluating absolute threshold values...");
+                        ThresholdEvaluationResult absoluteThresholdEvaluation = evaluateAbsoluteThreshold(summaryResponse, absoluteThresholds);
+                        if (absoluteThresholdEvaluation.isThresholdBroken())
                         {
-                            logger.failure(thresholdEvaluation.toString());
+                            logger.failure(absoluteThresholdEvaluation.toString());
                             status = BuildFinishedStatus.FINISHED_FAILED;
+                        } else
+                        {
+                            logger.message(absoluteThresholdEvaluation.toString());
                         }
+                    }
+
+                    if (relativeThresholds.size() > 0)
+                    {
+                        if (statistics != null)
+                        {
+                            logger.message("Evaluating relative threshold values...");
+
+                            ThresholdEvaluationResult relativeThresholdEvaluation = evaluateRelativeThreshold(summaryResponse.getPerformanceSummary(), statistics, relativeThresholds);
+                            if (relativeThresholdEvaluation.isThresholdBroken())
+                            {
+                                logger.failure(relativeThresholdEvaluation.toString());
+                                status = BuildFinishedStatus.FINISHED_FAILED;
+                            } else
+                            {
+                                logger.message(relativeThresholdEvaluation.toString());
+                            }
+                        } else
+                        {
+                            logger.message("Cannot evaluate relative thresholds due to previous exception. Check the build log above.");
+                        }
+
                     }
 
                 } else if (jobStatus.isJobFaulted())
@@ -256,19 +385,9 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             {
                 statusMessage = String.format("##teamcity[buildStatus status='%s' text='%s']", "SUCCESS", "Success: ".concat(summaryResponseIfTestPasses.toStatusMessageString()));
             }
-            
+
             BuildProgressLogger buildLogger = this.build.getBuildLogger();
             buildLogger.logMessage(DefaultMessagesInfo.createTextMessage(statusMessage));
-            /*
-            System.out.print(statusMessage);
-            logger.message(statusMessage);            
-            logger.message("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");
-            logger.finished("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");            
-            System.out.print("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");
-            System.out.println("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");
-            
-            buildLogger.targetFinished("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");
-            buildLogger.progressMessage("##teamcity[buildStatus status='SUCCESS' text='{build.status.text} and some aftertext']");*/
         }
         return status;
     }
@@ -363,14 +482,107 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         }
     }
 
-    private ThresholdEvaluationResult evaluateThreshold(LoadtestJobSummaryResponse jobSummary, List<Threshold> thresholds)
+    private ThresholdEvaluationResult evaluateRelativeThreshold(PerformanceSummary performanceSummaryOfCurrentJob, SelfServiceStatistics statsOfPreviousLoadtest, List<Threshold> relativeThresholds)
+    {
+        ThresholdEvaluationResult res = new ThresholdEvaluationResult();
+
+        StringBuilder rawOutputBuilder = new StringBuilder();
+        for (Threshold relativeThreshold : relativeThresholds)
+        {
+            rawOutputBuilder.append("Relative threshold ").append(relativeThreshold.toRelativeThresholdString()).append("\r\n");
+            StandardMetricResult.Metrics metric = relativeThreshold.getMetric();
+            int thresholdValue = relativeThreshold.getThresholdValue();
+            Operator operator = relativeThreshold.getOperator();
+            if (metric == StandardMetricResult.Metrics.average_page_response_time)
+            {
+                double newAverageResponseTimePerPage = performanceSummaryOfCurrentJob.getAverageResponseTimePerPage();
+                double previousAverageResponseTimePerPage = statsOfPreviousLoadtest.getAverageResponseTimePerPage();
+
+                double diffAverageResponseTimePerPage = (newAverageResponseTimePerPage - previousAverageResponseTimePerPage);
+                double percChangeAverageResponseTimePerPage = 100.0 * (diffAverageResponseTimePerPage / previousAverageResponseTimePerPage);
+                String description = ("Previous response time per page: ")
+                        .concat(Double.toString(previousAverageResponseTimePerPage)).concat(", new response time per page: ")
+                        .concat(Double.toString(newAverageResponseTimePerPage)).concat(", percentage change: ")
+                        .concat(Double.toString(percChangeAverageResponseTimePerPage));
+                rawOutputBuilder.append(description);
+                switch (operator)
+                {
+                    case greaterThan:
+                        if (thresholdValue < percChangeAverageResponseTimePerPage)
+                        {
+                            res.setThresholdBroken(true);
+                            res.addThresholdExceededDescription(description.concat(". Outcome: FAILED"));
+                        } else
+                        {
+                            res.addThresholdPassedDescription(description.concat(". Outcome: PASSED"));
+                        }
+                        break;
+                    case lessThan:
+                        if (thresholdValue > percChangeAverageResponseTimePerPage)
+                        {
+                            res.setThresholdBroken(true);
+                            res.addThresholdExceededDescription(description.concat(". Outcome: FAILED"));
+                        } else
+                        {
+                            res.addThresholdPassedDescription(description.concat(". Outcome: PASSED"));
+                        }
+                        break;
+                }
+            }
+
+            if (metric == StandardMetricResult.Metrics.failure_rate)
+            {
+                int newPassedLoops = performanceSummaryOfCurrentJob.getTotalPassedLoops();
+                int newFailedLoops = performanceSummaryOfCurrentJob.getTotalFailedLoops();
+                int newTotalLoops = newPassedLoops + newFailedLoops;
+                double newFailedLoopsShare = (double) (newFailedLoops * 100.0) / (double) (newTotalLoops * 100.0);
+                int previousPassedLoops = performanceSummaryOfCurrentJob.getTotalPassedLoops();
+                int previousFailedLoops = performanceSummaryOfCurrentJob.getTotalFailedLoops();
+                int previousTotalLoops = previousPassedLoops + previousFailedLoops;
+                double previousFailedLoopsShare = (double) (previousFailedLoops * 100.0) / (double) (previousTotalLoops * 100.0);
+                double percChangeFailedLoops = newFailedLoopsShare - previousFailedLoopsShare;
+
+                String description = ("Previous failed loops share: ")
+                        .concat(Double.toString(previousFailedLoopsShare)).concat("% , new failed loops share: ")
+                        .concat(Double.toString(newFailedLoopsShare)).concat("%, percentage change: ").concat(Double.toString(percChangeFailedLoops));
+                rawOutputBuilder.append(description);
+                switch (operator)
+                {
+                    case greaterThan:
+                        if (thresholdValue < percChangeFailedLoops)
+                        {
+                            res.setThresholdBroken(true);
+                            res.addThresholdExceededDescription(description.concat(". Outcome: FAILED"));
+                        } else
+                        {
+                            res.addThresholdPassedDescription(description.concat(". Outcome: PASSED"));
+                        }
+                        break;
+                    case lessThan:
+                        if (thresholdValue > percChangeFailedLoops)
+                        {
+                            res.setThresholdBroken(true);
+                            res.addThresholdExceededDescription(description.concat(". Outcome: FAILED"));
+                        } else
+                        {
+                            res.addThresholdPassedDescription(description.concat(". Outcome: PASSED"));
+                        }
+                        break;
+                }
+            }
+        }
+        res.setRawEvaluationResult(rawOutputBuilder.toString());
+        return res;
+    }
+
+    private ThresholdEvaluationResult evaluateAbsoluteThreshold(LoadtestJobSummaryResponse jobSummary, List<Threshold> absoluteThresholds)
     {
         ThresholdEvaluationResult res = new ThresholdEvaluationResult();
         res.setThresholdBroken(false);
         StringBuilder rawOutputBuilder = new StringBuilder();
-        for (Threshold threshold : thresholds)
+        for (Threshold threshold : absoluteThresholds)
         {
-            rawOutputBuilder.append("Threshold ").append(threshold.toString()).append("\r\n");
+            rawOutputBuilder.append("Absolute threshold ").append(threshold.toString()).append("\r\n");
 
             StandardMetricResult.Metrics metric = threshold.getMetric();
             int thresholdValue = threshold.getThresholdValue();
@@ -392,8 +604,15 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                             String description = "Actual response time per page "
                                     .concat(Integer.toString(responseTimePerPageMillis))
                                     .concat(" exceeds threshold value of ").concat(Integer.toString(thresholdValue))
-                                    .concat(" ms.");
+                                    .concat(" ms. Outcome: FAILED");
                             res.addThresholdExceededDescription(description);
+                        } else
+                        {
+                            String description = "Actual response time per page "
+                                    .concat(Integer.toString(responseTimePerPageMillis))
+                                    .concat(" is lower than threshold value of ").concat(Integer.toString(thresholdValue))
+                                    .concat(" ms. Outcome: PASSED");
+                            res.addThresholdPassedDescription(description);
                         }
                         break;
                     case lessThan:
@@ -403,8 +622,15 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                             String description = "Actual response time per page "
                                     .concat(Integer.toString(responseTimePerPageMillis))
                                     .concat("ms is lower than threshold of ").concat(Integer.toString(thresholdValue))
-                                    .concat(" ms.");
+                                    .concat(" ms. Outcome: FAILED");
                             res.addThresholdExceededDescription(description);
+                        } else
+                        {
+                            String description = "Actual response time per page "
+                                    .concat(Integer.toString(responseTimePerPageMillis))
+                                    .concat("ms exceeds threshold of ").concat(Integer.toString(thresholdValue))
+                                    .concat(" ms. Outcome: PASSED");
+                            res.addThresholdPassedDescription(description);
                         }
                         break;
                 }
@@ -429,8 +655,15 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                             String description = "Actual failed loops rate "
                                     .concat(Double.toString(failedLoopsShare))
                                     .concat(" exceeds threshold value of ").concat(Integer.toString(thresholdValue))
-                                    .concat(" %.");
+                                    .concat(" %. Outcome: FAILED");
                             res.addThresholdExceededDescription(description);
+                        } else
+                        {
+                            String description = "Actual failed loops rate "
+                                    .concat(Double.toString(failedLoopsShare))
+                                    .concat(" is lower than threshold value of ").concat(Integer.toString(thresholdValue))
+                                    .concat(" %. Outcome: PASSED");
+                            res.addThresholdPassedDescription(description);
                         }
                         break;
                     case lessThan:
@@ -440,8 +673,15 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
                             String description = "Actual failed loops rate "
                                     .concat(Double.toString(failedLoopsShare))
                                     .concat(" is lower than threshold value of ").concat(Integer.toString(thresholdValue))
-                                    .concat(" %.");
+                                    .concat(" %. Outcome: FAILED");
                             res.addThresholdExceededDescription(description);
+                        } else
+                        {
+                            String description = "Actual failed loops rate "
+                                    .concat(Double.toString(failedLoopsShare))
+                                    .concat(" is lower than threshold value of ").concat(Integer.toString(thresholdValue))
+                                    .concat(" %. Outcome: PASSED");
+                            res.addThresholdPassedDescription(description);
                         }
                         break;
                 }
@@ -609,5 +849,132 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             wr.close();
         }
         return connection;
+    }
+
+    private String getExceptionStacktrace(Exception e)
+    {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        return sw.toString();
+    }
+
+    private Document loadXMLFromString(String xml) throws ParserConfigurationException, SAXException, IOException
+    {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        InputSource is = new InputSource(new StringReader(xml));
+        return builder.parse(is);
+    }
+
+    private String getBuilderAuthBase64()
+    {
+        String buildPassword = this.build.getAccessCode();
+        String buildUsername = build.getAccessUser();
+        String basicAuthString = buildUsername.concat(":").concat(buildPassword);
+        byte[] authStringBytes = basicAuthString.getBytes();
+        byte[] authStringBytesBase64 = Base64.encodeBase64(authStringBytes);
+        String authStringBytesBase64Stringified = new String(authStringBytesBase64);
+        return authStringBytesBase64Stringified;
+    }
+
+    private String executeCallToTeamcityRestApi(String teamcityRestUrl, String basicAuthString) throws MalformedURLException, IOException
+    {
+        URL url = new URL(teamcityRestUrl);
+        URLConnection urlConnection = url.openConnection();
+        urlConnection.setRequestProperty("Authorization", "Basic " + basicAuthString);
+        InputStream is = urlConnection.getInputStream();
+        InputStreamReader isr = new InputStreamReader(is);
+
+        int numCharsRead;
+        char[] charArray = new char[1024];
+        StringBuilder latestBuildXmlBuilder = new StringBuilder();
+        while ((numCharsRead = isr.read(charArray)) > 0)
+        {
+            latestBuildXmlBuilder.append(charArray, 0, numCharsRead);
+        }
+        String response = latestBuildXmlBuilder.toString();
+        return response;
+    }
+
+    private String getLatestBuildGetterUrl()
+    {
+        BuildAgentConfiguration agentConfiguration = this.build.getAgentConfiguration();
+        String serverUrl = agentConfiguration.getServerUrl();
+        String buildTypeId = this.build.getBuildTypeId();
+        String projectNameForUrl = this.build.getProjectName().replace(" ", "%20");
+        String status = "SUCCESS";
+        String teamcityRestUrl = serverUrl.concat("/httpAuth/app/rest/builds/buildType:").concat(buildTypeId)
+                .concat(",project:").concat(projectNameForUrl).concat(",status:").concat(status).concat(",lookupLimit:1");
+        return teamcityRestUrl;
+    }
+
+    private String getArtifactsGetterLink(String artifactsHref)
+    {
+        BuildAgentConfiguration agentConfiguration = this.build.getAgentConfiguration();
+        String serverUrl = agentConfiguration.getServerUrl();
+        String teamcityRestUrl = serverUrl.concat(artifactsHref);
+        return teamcityRestUrl;
+    }
+
+    private String getArtifactFileDownloaderLink(String artifactFileHref)
+    {
+        BuildAgentConfiguration agentConfiguration = this.build.getAgentConfiguration();
+        String serverUrl = agentConfiguration.getServerUrl();
+        String teamcityRestUrl = serverUrl.concat(artifactFileHref);
+        return teamcityRestUrl;
+    }
+
+    private String getLatestBuildArtifactHref(String latestBuildXml) throws ParserConfigurationException, SAXException, IOException
+    {
+        Document document = loadXMLFromString(latestBuildXml);
+        document.getDocumentElement().normalize();
+        NodeList elementsByTagName = document.getElementsByTagName("artifacts");
+        if (elementsByTagName != null)
+        {
+            int length = elementsByTagName.getLength();
+            if (length >= 1)
+            {
+                Node item = elementsByTagName.item(0);
+                Element element = (Element) item;
+                String artifactHref = element.getAttribute("href");
+                return artifactHref;
+            }
+        }
+
+        return null;
+    }
+
+    private String getLatestTestResultDownloadLink(String artifactFilesXml) throws ParserConfigurationException, SAXException, IOException
+    {
+        Document document = loadXMLFromString(artifactFilesXml);
+        document.getDocumentElement().normalize();
+        NodeList fileElements = document.getElementsByTagName("file");
+        if (fileElements != null)
+        {
+            int length = fileElements.getLength();
+            for (int i = 0; i < length; i++)
+            {
+                Node node = fileElements.item(i);
+                Element element = (Element) node;
+                String artifactFilename = element.getAttribute("name");
+                if (artifactFilename.equals("load-test-results.txt"))
+                {
+                    NodeList childNodesOfFile = node.getChildNodes();
+                    for (int z = 0; z < childNodesOfFile.getLength(); z++)
+                    {
+                        Node currentNode = childNodesOfFile.item(z);
+                        if (currentNode.getNodeName().equals("content"))
+                        {
+                            Element hrefElement = (Element) currentNode;
+                            String artifactDownloadLink = hrefElement.getAttribute("href");
+                            return artifactDownloadLink;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }

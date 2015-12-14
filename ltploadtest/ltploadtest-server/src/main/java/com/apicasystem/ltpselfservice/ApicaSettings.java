@@ -6,6 +6,7 @@ import com.apicasystem.ltpselfservice.resources.Operator;
 import com.apicasystem.ltpselfservice.resources.StandardMetricResult;
 import com.apicasystem.ltpselfservice.resources.StringUtils;
 import com.apicasystem.ltpselfservice.resources.Threshold;
+import com.apicasystem.ltpselfservice.resources.ThresholdType;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -108,12 +109,12 @@ public class ApicaSettings
         }
     }
 
-    public String stringifiedThresholds(Map<String, String> properties)
+    public String stringifiedThresholds(Map<String, String> properties, ThresholdType thresholdType)
     {
         try
         {
             StringBuilder builder = new StringBuilder();
-            List<Threshold> thresholds = parseThresholds(properties);
+            List<Threshold> thresholds = parseThresholds(properties, thresholdType);
             if (thresholds.isEmpty())
             {
                 builder.append("No thresholds specified.");
@@ -121,8 +122,15 @@ public class ApicaSettings
             {
                 for (Threshold threshold : thresholds)
                 {
-                    builder.append(threshold.toString())
-                            .append("\r\n");
+                    if (thresholdType == ThresholdType.Absolute)
+                    {
+                        builder.append(threshold.toString())
+                                .append("\r\n");
+                    } else if (thresholdType == ThresholdType.Relative)
+                    {
+                        builder.append(threshold.toRelativeThresholdString())
+                                .append("\r\n");
+                    }
                 }
             }
             return builder.toString();
@@ -143,12 +151,25 @@ public class ApicaSettings
         throw new NullPointerException("The properties collection does not include the test environment key.");
     }
 
-    public List<Threshold> parseThresholds(Map<String, String> properties) throws Exception
+    public List<Threshold> parseThresholds(Map<String, String> properties, ThresholdType thresholdType) throws Exception
     {
         try
         {
             List<Threshold> thresholds = new ArrayList<Threshold>();
-            Pattern thresholdPattern = Pattern.compile("threshold\\.(\\d+)\\.metric");
+            String thresholdPropertyName = "";
+            switch (thresholdType)
+            {
+                case Absolute:
+                    thresholdPropertyName = "threshold";
+                    break;
+                case Relative:
+                    thresholdPropertyName = "relative_threshold";
+                    break;
+                default:
+                    thresholdPropertyName = "threshold";
+                    break;
+            }
+            Pattern thresholdPattern = Pattern.compile(thresholdPropertyName + "\\.(\\d+)\\.metric");
 
             Set<Map.Entry<String, String>> entrySet = properties.entrySet();
 
@@ -160,9 +181,9 @@ public class ApicaSettings
                 if (matcher.matches())
                 {
                     String thresholdId = matcher.group(1);
-                    String operatorKey = "threshold.".concat(thresholdId).concat(".operator");
-                    String valueKey = "threshold.".concat(thresholdId).concat(".value");
-                    String actionKey = "threshold.".concat(thresholdId).concat(".result");
+                    String operatorKey = thresholdPropertyName + ".".concat(thresholdId).concat(".operator");
+                    String valueKey = thresholdPropertyName + ".".concat(thresholdId).concat(".value");
+                    String actionKey = thresholdPropertyName + ".".concat(thresholdId).concat(".result");
                     if (properties.containsKey(operatorKey)
                             && properties.containsKey(valueKey)
                             && properties.containsKey(actionKey))
@@ -183,7 +204,16 @@ public class ApicaSettings
                                 {
                                     throw new Exception("Make sure you specify a non-negative integer for all threshold values.");
                                 }
-                                if (metric.valueName.equals("percent"))
+                                if (thresholdType == ThresholdType.Absolute)
+                                {
+                                    if (metric.valueName.equals("percent"))
+                                    {
+                                        if (valueParsed > 100)
+                                        {
+                                            throw new Exception("Percentage values should not exceed 100.");
+                                        }
+                                    }
+                                } else if (thresholdType == ThresholdType.Relative)
                                 {
                                     if (valueParsed > 100)
                                     {
