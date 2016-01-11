@@ -50,11 +50,11 @@ public class EnvironmentFactory
         switch (currentEnvironment)
         {
             case PRODUCTION:
-                return "http://loadtest.apicasystem.com/";
+                return "https://loadtest.apicasystem.com/";
             case TRIAL:
                 return "http://loadtest-trial.apicasystem.com/";
             default:
-                return "http://loadtest.apicasystem.com/";
+                return "https://loadtest.apicasystem.com/";
         }
     }
 }

@@ -54,7 +54,9 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
     private final AgentRunningBuild build;
     private final BuildRunnerContext context;
     private final ArtifactsWatcher artifactsWatcher;
-    private final String NL = System.lineSeparator();
+    private final String NL = "\r\n";
+    private static final String[] charsToBeUrlEncoded = {"%", " ", "!", "\"", "#", "&", "/", "(", ")", "=", "?", "@", "£", "$", "€", "{", "[", "]", "}", "\\", "'", "*", "^", "<", ">", ",", ";", ":", "~"};
+    private static final String[] encodedUrlChars = {"%25","%20", "%21", "%22", "%23", "%26", "%2F", "%28", "%29", "%3D", "%3F", "%40", "%C2%A3", "%24", "%E2%82%AC", "%7B", "%5B", "%5D", "%7D", "%5C", "%27", "%2A", "%5E", "%3C", "%3E", "%2C", "%3B", "%3A", "%7E"};    
 
     public ApicaBuildProcess(AgentRunningBuild build, BuildRunnerContext context,
             ArtifactsWatcher artifactsWatcher)
@@ -250,7 +252,10 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         {
             logger.message("There's at least one relative threshold saved. Will now try to extract the load test result of the previous successful load test.");
             SelfServiceStatisticsOfPreset testResultOfPreviousSuccessfulBuild = extractTestResultOfPreviousSuccessfulBuild(logger);
-            statistics = testResultOfPreviousSuccessfulBuild.getStatistics();
+            if (testResultOfPreviousSuccessfulBuild != null)
+            {
+                statistics = testResultOfPreviousSuccessfulBuild.getStatistics();
+            }
         }
         String loadtestPresetName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_PRESET_NAME, "");
         String loadtestFileName = params.get(LtpSelfServiceConstants.SETTINGS_LTP_RUNNABLE_FILE, "");
@@ -902,10 +907,10 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
         BuildAgentConfiguration agentConfiguration = this.build.getAgentConfiguration();
         String serverUrl = agentConfiguration.getServerUrl();
         String buildTypeId = this.build.getBuildTypeId();
-        String projectNameForUrl = this.build.getProjectName().replace(" ", "%20");
+        String projectNameForUrl = prepareUrlEndodedProjectName(this.build.getProjectName());
         String status = "SUCCESS";
         String teamcityRestUrl = serverUrl.concat("/httpAuth/app/rest/builds/buildType:").concat(buildTypeId)
-                .concat(",project:").concat(projectNameForUrl).concat(",status:").concat(status).concat(",lookupLimit:1");
+                .concat(",project:").concat(projectNameForUrl).concat(",status:").concat(status);
         return teamcityRestUrl;
     }
 
@@ -977,4 +982,21 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
 
         return null;
     }
+    
+    private String prepareUrlEndodedProjectName(String projectName)
+    {
+        String prepared = projectName;
+        
+        for (int i = 0; i < charsToBeUrlEncoded.length; i++)
+        {
+            String s = charsToBeUrlEncoded[i];
+            String repl = encodedUrlChars[i];
+            if (prepared.indexOf(s) > -1)
+            {
+                prepared = prepared.replace(s, repl);
+            }
+        }
+        return prepared;
+    }
+        
 }
