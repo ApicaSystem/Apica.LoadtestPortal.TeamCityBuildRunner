@@ -431,6 +431,8 @@ public class ApicaBuildProcess extends FutureBasedBuildProcess
             SelfServiceStatisticsOfPreset presetStatistics = new SelfServiceStatisticsOfPreset();
             presetStatistics.setPresetName(presetName);
             presetStatistics.setStatistics(stats);
+            presetStatistics.setJobId(jobSummaryResponse.getJobId());
+            presetStatistics.setLinkToTestResult(jobSummaryResponse.getLinkToTestResults());
             File f = storeLoadtestResults(presetStatistics);
             logger.message("Saved the load test results on the agent repository: " + f.getAbsolutePath());
 

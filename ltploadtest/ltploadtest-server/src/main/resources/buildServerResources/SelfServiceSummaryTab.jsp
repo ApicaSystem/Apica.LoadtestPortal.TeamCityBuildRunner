@@ -16,6 +16,14 @@
                 <td>${presetName}</td>
             </tr>
             <tr>
+                <th>Job id</th>
+                <td>${jobid}</td>
+            </tr>
+            <tr>
+                <th>Link to details</th>
+                <td><a href="${link}">Apica LoadTest Results</a></td>
+            </tr>
+            <tr>
                 <th>Date UTC</th>
                 <td>${dateOfInsertion}</td>
             </tr>

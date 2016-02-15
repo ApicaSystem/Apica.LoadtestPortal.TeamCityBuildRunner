@@ -80,6 +80,8 @@ public class SelfServiceSummaryTab extends ApicaLoadTestTabBase
         SelfServiceStatisticsOfPreset stats = artifactReadingResult.getLoadTestStatistics();
         SelfServiceStatistics statistics = stats.getStatistics();
         model.put("presetName", stats.getPresetName());
+        model.put("jobid", stats.getJobId());
+        model.put("link", stats.getLinkToTestResult());
         model.put("dateOfInsertion", statistics.getDateOfInsertion());
         model.put("totalPassedLoops", statistics.getTotalPassedLoops());
         model.put("totalFailedLoops", statistics.getTotalFailedLoops());
