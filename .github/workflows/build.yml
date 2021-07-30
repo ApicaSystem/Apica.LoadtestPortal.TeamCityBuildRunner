@@ -2,7 +2,7 @@ name: Build & Analyse
 on:
   push:
     branches:
-      - master
+      - production
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
@@ -38,11 +38,35 @@ jobs:
           repositories: '[{ "id": "central", "url": "https://apica.jfrog.io/artifactory/default-maven-virtual" , "releases": { "enabled": "true"},"snapshots": {"enabled": "false"}},{ "id": "snapshots", "url": "https://apica.jfrog.io/artifactory/default-maven-virtual" , "releases": {"enabled": "false"},"snapshots": {"enabled": "true"}}]'
           plugin_repositories: '[{ "id": "central", "url": "https://apica.jfrog.io/artifactory/default-maven-virtual" , "releases": { "enabled": "true"},"snapshots": {"enabled": "false"}},{ "id": "snapshots", "url": "https://apica.jfrog.io/artifactory/default-maven-virtual" , "releases": {"enabled": "false"},"snapshots": {"enabled": "true"}}]'
           servers: '[{ "id": "central", "username": "${env.JFROG_USERNAME}", "password": "${env.JFROG_PASSWORD}" },{ "id": "snapshots", "username": "${env.JFROG_USERNAME}", "password": "${env.JFROG_PASSWORD}" }]'
-      - name: Build and analyze
+      - name: Build and analyze ltploadtest-server
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           JFROG_USERNAME: ${{ secrets.JFROG_USERNAME }}
           JFROG_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
         run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
-        working-directory: ${{ env.working-directory }}
+        working-directory: ${{ env.working-directory }}/ltploadtest-server            
+      - name: Build and analyze ltploadtest-common
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          JFROG_USERNAME: ${{ secrets.JFROG_USERNAME }}
+          JFROG_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        working-directory: ${{ env.working-directory }}/ltploadtest-common
+      - name: Build and analyze build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          JFROG_USERNAME: ${{ secrets.JFROG_USERNAME }}
+          JFROG_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        working-directory: ${{ env.working-directory }}/build    
+      - name: Build and analyze ltploadtest-agent
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          JFROG_USERNAME: ${{ secrets.JFROG_USERNAME }}
+          JFROG_PASSWORD: ${{ secrets.JFROG_PASSWORD }}
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        working-directory: ${{ env.working-directory }}/ltploadtest-agent
