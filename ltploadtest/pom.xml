@@ -8,13 +8,10 @@
     <packaging>pom</packaging>
     <properties>
         <teamcity-version>8.0</teamcity-version>
+        <sonar.projectKey>ApicaSystem_Apica.LoadtestPortal.TeamCityBuildRunner</sonar.projectKey>
+        <sonar.organization>apicasystem</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
-    <repositories>
-        <repository>
-            <id>JetBrains</id>
-            <url>http://repository.jetbrains.com/all</url>
-        </repository>
-    </repositories>
     <build>
         <pluginManagement>
             <plugins>
